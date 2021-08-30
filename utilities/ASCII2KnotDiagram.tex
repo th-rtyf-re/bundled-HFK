@@ -1,0 +1,198 @@
+% ASCII to Knot Diagram
+%
+% Provides the command \KnotDiagram, which takes an ASCII representation of a 
+% knot diagram and produces a tikz version. The command also allows for
+% markings of Kauffman states and partial Kauffman states.
+% 
+% The ASCII representation is designed to make visual sense, so each character
+% represents a single block of the knot diagram. Each character encodes the
+% presence of a local extrema, crossing, interval marking, and crossing marking 
+% as needed. This means that the choice of ASCII symbols is sometimes unclear,
+% but every character has an explanation:
+% 0,1: an empty space, and its counterpart where the lower interval is marked
+% .,_: a space with strands on both sides and its marked counterpart
+% +,t: a positive, unmarked crossing and its counterpart where the lower
+%      interval is marked
+% N,E,S,W: positive crossings with respective north, east, south, and west
+%          markings
+% -,=: a negative, unmarked crossing and its counterpart where the lower
+%      interval is marked
+% n,e,s,w: negative crossings with their respective markings
+% a,A: a local maximum (think cAp) and its marked counterpart
+% u,U: a local minimum (think cUp) and its marked counterpart
+% l,L: a strand moving from bottom right to upper left and its marked 
+%      counterpart
+% r,R: a strand moving from bottom left to upper right and its marked 
+%      counterpart
+% 
+% With the ASCII representation, we can represent knot diagrams, like
+% a trefoil knot:
+% 
+% a0a
+% .+.
+% .+.
+% .+.
+% u0u
+% 
+% upper and lower Kauffman diagrams:
+% 
+% a0a      .-.
+% .+.  or  u0u
+% 
+% as well as partial Kauffman diagrams with upper and lower intervals marked:
+% 
+% 10011
+% ..E..
+% 
+% The command \KnotDiagram itself comes with several adjustable aesthetic 
+% parameters:
+% scale: the tikz scale
+% line width: the tikz line width
+% crossing gap: the relative amount of white space between a strand crossing 
+%               under and the strand crossing over
+% marking gap: relative distance between interval markings and strands
+% marking width: the thickness of the interval markings
+% marking radius: the radius of the crossing markings
+
+\usepackage{tikz}
+\usepackage{listofitems}
+\usepackage{xstring}
+\usepackage{pgfkeys}
+
+% Specifying key values for knot diagrams. There is a mix of absolute and 
+% relative coordinates... I don't know how I feel about that.
+\pgfkeys{%
+/knotdiagram/.is family, /knotdiagram,
+default/.style = {
+scale = 1,
+line width = .3mm,
+crossing gap = .2,
+marking gap = .2,
+marking width = .3mm,
+marking radius = .5mm,
+interval marking = 1,
+},
+scale/.estore in = \Scale,
+line width/.estore in = \LineWidth,
+crossing gap/.estore in = \CrossingGap,
+marking gap/.estore in = \MarkingGap,
+marking width/.estore in = \MarkingWidth,
+marking radius/.estore in = \MarkingRadius,
+interval marking/.estore in = \IntervalMarking
+}
+
+\newcounter{Slice} % the current slice layer
+
+\newcommand*{\PartialDiagram}[1]%
+% Takes a string of characters and returns a partial diagram consisting of
+% local  extrema, crossings, which may or may not be marked. The intervals
+% below marked crossings are marked or not, following the definition of partial
+% Kauffman states. Note that the necessary interval markings for crossings are 
+% not necessarily added.
+% All symbols can be adjusted to taste.
+{%
+\def\prevEvent{0} % If the previous space had an event, there is no need
+                     % to add an extra segment.
+\def\prevStrand{0}
+\StrLen{#1}[\n]
+\foreach \i in {1,...,\n}{%
+    \StrChar{#1}{\i}[\chr]
+    \def\x{\i-1}
+    \IfSubStr{AaUuLlRr+tNESW-=nesw}{\chr}{% some event
+    \global\def\prevStrand{0}
+    \global\def\prevEvent{1}
+    \IfSubStr{Aa}{\chr}{% Local maximum
+        \draw (\x,-\theSlice) arc (180:0:.5);
+    }{%
+    \IfSubStr{Uu}{\chr}{% Local minimum
+        \draw (\x,1-\theSlice) arc (180:360:.5);
+    }{%
+    \IfSubStr{Ll}{\chr}{% strand of slope -1
+        \draw (\x,1-\theSlice) -- (\x+1,-\theSlice);
+    }{%
+    \IfSubStr{Rr}{\chr}{% strand of slope 1
+        \draw (\x,-\theSlice) -- (\x+1,1-\theSlice);
+    }{%
+    \IfSubStr{+tNESW}{\chr}{% Positive crossing
+        \draw (\x,1-\theSlice) -- (\x+1,-\theSlice);
+        \fill[white] (\x+.5,.5-\theSlice-\CrossingGap) --
+                     (\x+.5-\CrossingGap,.5-\theSlice) --
+                     (\x+.5,.5-\theSlice+\CrossingGap) --
+                     (\x+.5+\CrossingGap,.5-\theSlice) -- cycle;
+        \draw (\x,-\theSlice) -- (\x+1,1-\theSlice);
+    }{%
+    \IfSubStr{-=nesw}{\chr}{% Negative crossing
+        \draw (\x,-\theSlice) -- (\x+1,1-\theSlice);
+        \fill[white] (\x+.5,.5-\theSlice-\CrossingGap) --
+                     (\x+.5-\CrossingGap,.5-\theSlice) --
+                     (\x+.5,.5-\theSlice+\CrossingGap) --
+                     (\x+.5+\CrossingGap,.5-\theSlice) -- cycle;
+        \draw (\x,1-\theSlice) -- (\x+1,-\theSlice);
+    }{}}%
+    \IfSubStr{Nn}{\chr}{% North marking
+        \fill (\x+.5,.5-\theSlice+\CrossingGap) circle (\MarkingRadius);
+    }{%
+    \IfSubStr{Ee}{\chr}{% East marking
+        \fill (\x+.5+\CrossingGap,.5-\theSlice) circle (\MarkingRadius);
+    }{%
+    \IfSubStr{Ss}{\chr}{% South marking
+        \fill (\x+.5,.5-\theSlice-\CrossingGap) circle (\MarkingRadius);
+    }{%
+    \IfSubStr{Ww}{\chr}{% West marking
+        \fill (\x+.5-\CrossingGap,.5-\theSlice) circle (\MarkingRadius);
+    }{}}}}}}}}}{% other cases
+    \IfSubStr{._}{\chr}{% Empty space: draw left strand if allowed
+        \ifnum\prevEvent=0
+            \draw (\x,-\theSlice) -- (\x,1-\theSlice);
+        \else
+            \global\def\prevEvent{0}
+            \global\def\prevStrand{1}
+        \fi
+    }{%
+    \IfSubStr{01}{\chr}{% No strand, but previous space needs a right strand
+        \ifnum\prevStrand=1
+            \draw(\x,-\theSlice) -- (\x,1-\theSlice);
+        \else
+            \global\def\prevStrand{0}
+        \fi
+        \def\prevEvent{0}
+    }{}}}%
+    \IfSubStr{_t=NnEeWwAULR1}{\chr}{% Marked interval
+        \ifnum\IntervalMarking=1
+            \draw[line width=\MarkingWidth]%
+                (\x+\MarkingGap,-\theSlice) -- (\x+1-\MarkingGap,-\theSlice);
+        \else
+        \fi
+    }{}%
+}
+% Add a final right strand if needed
+\StrChar{#1}{\n}[\chr]
+\IfSubStr{._}{\chr}{%
+    \draw (\n,-\theSlice) -- (\n,1-\theSlice);
+}{}
+\stepcounter{Slice}
+}
+
+\newcommand{\KnotDiagram}[2][]%
+% Takes as input a knot diagram in ASCII representation and returns a tikz
+% version. Takes optional keyword values.
+{%
+\pgfkeys{/knotdiagram, default, #1}
+% Produce a list of slices: newlines become spaces, so we separate the argument 
+% by whitespace
+\setsepchar{ }%
+\ignoreemptyitems%
+\readlist\slices{#2}%
+\StrLen{\slices[1]}[\SpaceNumber]%
+% Draw the tikz picture:
+\setcounter{Slice}{0}%
+\;%
+\begin{tikzpicture}[%
+  line cap=round,
+  line width=\LineWidth,
+  scale=\Scale,
+  baseline={([yshift=-.5ex]current bounding box.center)}]
+\foreachitem\slice\in\slices{\PartialDiagram{\slice}}
+\end{tikzpicture}%
+\;%
+}
