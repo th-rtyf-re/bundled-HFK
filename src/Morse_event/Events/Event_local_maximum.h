@@ -40,8 +40,8 @@ class Knot_slice_local_maximum : public Knot_slice {
   
   ~Knot_slice_local_maximum() = default;
   
-  Event event_id() const override {
-    return Event::local_maximum;
+  Morse_event event_id() const override {
+    return Morse_event::local_maximum;
   }
   
   std::vector< int > lower_matchings(std::vector< int > matchings) const override {

@@ -48,8 +48,8 @@ class Knot_slice_crossing : public Knot_slice {
   
   ~Knot_slice_crossing() = default;
   
-  Event event_id() const override {
-    return sign ? Event::positive_crossing : Event::negative_crossing;
+  Morse_event event_id() const override {
+    return sign ? Morse_event::positive_crossing : Morse_event::negative_crossing;
   }
   
   std::vector< int > lower_matchings(std::vector< int > matchings) const override {

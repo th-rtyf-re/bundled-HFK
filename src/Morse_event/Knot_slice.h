@@ -27,18 +27,7 @@
 #include <utility>  // pair
 #include <vector>
 
-/* Events.
- *
- * This enum class lets us declare the various knot slices we use in our knot
- * diagrams.
- */
-enum class Event {
-  positive_crossing,
-  negative_crossing,
-  local_maximum,
-  local_minimum,
-  global_minimum
-};
+#include "Morse_event.h"
 
 /* Knot slice.
  * 
@@ -81,10 +70,10 @@ class Knot_slice {
     return position_;
   }
   
-  /* Return the event id. This must match the Event enum class, as well as the
-   * Event registers.
+  /* Return the event id. This must match the Morse_event enum class, as well
+   * as the Event registers.
    */
-  virtual Event event_id() const = 0;
+  virtual Morse_event event_id() const = 0;
   /* Given upper matchings for the strands, calculate the lower matchings
    */
   virtual std::vector< int > lower_matchings(std::vector< int > upper_matchings) const = 0;

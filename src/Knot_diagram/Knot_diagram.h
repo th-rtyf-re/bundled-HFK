@@ -78,7 +78,7 @@ class Knot_diagram {
       exit(1);
     }
     
-    std::vector< std::pair< int, Event > > morse_events;
+    std::vector< std::pair< int, Morse_event > > morse_events;
     int line_number = 1;
     for (std::string line; std::getline(morse_event_csv, line, '\n'); ++line_number) {
       if (line[0] == '#') { continue; }  // comment line
@@ -94,7 +94,7 @@ class Knot_diagram {
       auto i = line.find(',');
       std::string position = line.substr(0, i);
       std::string pre_event = line.substr(i + 1);
-      morse_events.push_back({std::stoi(position), static_cast< Event >(std::stoi(pre_event))});
+      morse_events.push_back({std::stoi(position), static_cast< Morse_event >(std::stoi(pre_event))});
     }
     morse_event_csv.close();
     
@@ -102,9 +102,9 @@ class Knot_diagram {
   }  // import_csv
   
   /* Create knot slices based on a list (position, event) */
-  void import_morse_events(std::vector< std::pair< int, Event > > morse_events) {
+  void import_morse_events(std::vector< std::pair< int, Morse_event > > morse_events) {
     if (!morse_events.empty()) {
-      morse_events.back().second = Event::global_minimum;  // set global minimum
+      morse_events.back().second = Morse_event::global_minimum;  // set global minimum
     }
     
     /* Add knot slices and calculate max_n_strands_ at the same time */

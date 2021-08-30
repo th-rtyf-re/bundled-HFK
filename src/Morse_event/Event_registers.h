@@ -25,6 +25,7 @@
 
 #include <memory>  // unique_ptr
 
+#include "Morse_event.h"
 #include "Knot_slice.h"
 #include "DA_bimodule.h"
 
@@ -41,14 +42,14 @@
 struct Knot_slice_register {
   using Knot_slice_handle = std::unique_ptr< Knot_slice >;
   
-  static Knot_slice_handle knot_slice(Event event_id, int position, int n_strands) {
+  static Knot_slice_handle knot_slice(Morse_event event_id, int position, int n_strands) {
     switch (event_id) {
-//    case Event:: /* event name */: return Knot_slice_handle(new /* knot slice class name */ (n_strands, position));
-      case Event::positive_crossing: return Knot_slice_handle(new Knot_slice_crossing< false >(n_strands, position));
-      case Event::negative_crossing: return Knot_slice_handle(new Knot_slice_crossing< true > (n_strands, position));
-      case Event::local_maximum    : return Knot_slice_handle(new Knot_slice_local_maximum    (n_strands, position));
-      case Event::local_minimum    : return Knot_slice_handle(new Knot_slice_local_minimum    (n_strands, position));
-      case Event::global_minimum   : return Knot_slice_handle(new Knot_slice_global_minimum   (n_strands, position));
+//    case Morse_event:: /* event name */: return Knot_slice_handle(new /* knot slice class name */ (n_strands, position));
+      case Morse_event::positive_crossing: return Knot_slice_handle(new Knot_slice_crossing< false >(n_strands, position));
+      case Morse_event::negative_crossing: return Knot_slice_handle(new Knot_slice_crossing< true > (n_strands, position));
+      case Morse_event::local_maximum    : return Knot_slice_handle(new Knot_slice_local_maximum    (n_strands, position));
+      case Morse_event::local_minimum    : return Knot_slice_handle(new Knot_slice_local_minimum    (n_strands, position));
+      case Morse_event::global_minimum   : return Knot_slice_handle(new Knot_slice_global_minimum   (n_strands, position));
     }
     std::cout << "Incorrect event ID. Exiting..." << std::endl;
     exit(1);  // give up
@@ -69,12 +70,12 @@ struct DA_bimodule_register {
   template< class Algebra >
   static DA_bimodule_handle da_bimodule(const Knot_slice_handle& slice, const Algebra& upper_algebra, const Algebra& lower_algebra) {
     switch(slice->event_id()) {
-//    case Event:: /* event name */: return DA_bimodule_handle(new /* templated DA-bimodule class name */ (slice, upper_algebra, lower_algebra));
-      case Event::positive_crossing: return DA_bimodule_handle(new DA_bimodule_crossing< false, D_module >(slice, upper_algebra, lower_algebra));
-      case Event::negative_crossing: return DA_bimodule_handle(new DA_bimodule_crossing< true,  D_module >(slice, upper_algebra, lower_algebra));
-      case Event::local_maximum    : return DA_bimodule_handle(new DA_bimodule_local_maximum<   D_module >(slice, upper_algebra, lower_algebra));
-      case Event::local_minimum    : return DA_bimodule_handle(new DA_bimodule_local_minimum<   D_module >(slice, upper_algebra, lower_algebra));
-      case Event::global_minimum   : return DA_bimodule_handle(new DA_bimodule_global_minimum<  D_module >(slice, upper_algebra, lower_algebra));
+//    case Morse_event:: /* event name */: return DA_bimodule_handle(new /* templated DA-bimodule class name */ (slice, upper_algebra, lower_algebra));
+      case Morse_event::positive_crossing: return DA_bimodule_handle(new DA_bimodule_crossing< false, D_module >(slice, upper_algebra, lower_algebra));
+      case Morse_event::negative_crossing: return DA_bimodule_handle(new DA_bimodule_crossing< true,  D_module >(slice, upper_algebra, lower_algebra));
+      case Morse_event::local_maximum    : return DA_bimodule_handle(new DA_bimodule_local_maximum<   D_module >(slice, upper_algebra, lower_algebra));
+      case Morse_event::local_minimum    : return DA_bimodule_handle(new DA_bimodule_local_minimum<   D_module >(slice, upper_algebra, lower_algebra));
+      case Morse_event::global_minimum   : return DA_bimodule_handle(new DA_bimodule_global_minimum<  D_module >(slice, upper_algebra, lower_algebra));
     }
     std::cout << "Incorrect event ID. Exiting..." << std::endl;
     exit(1);  // give up

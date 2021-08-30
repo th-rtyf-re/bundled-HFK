@@ -40,8 +40,8 @@ class Knot_slice_local_minimum : public Knot_slice {
   
   ~Knot_slice_local_minimum() = default;
   
-  Event event_id() const override {
-    return Event::local_minimum;
+  Morse_event event_id() const override {
+    return Morse_event::local_minimum;
   }
   
   std::vector< int > lower_matchings(std::vector< int > matchings) const override {
