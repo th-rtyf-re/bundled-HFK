@@ -1,5 +1,5 @@
-### CSV to HFK
-# Running the example
+# CSV to HFK
+### Running the example
 Compile by executing
 ```
 sh compile.sh
@@ -40,7 +40,7 @@ represents a right-handed trefoil knot. It can be found at
 ```
 You should get the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 
-# Visualize the example
+### Visualize the example
 By default, the macro `DRAW` is defined. If this is the case, after executing
 the code, two files will be created: `differential_suffix_tree.tex` and
 `knot_diagram.tex`. Compile the `LaTeX` file `drawings.tex` (provided the
