@@ -17,7 +17,7 @@ original authors have a plan to release an updated version of the code on
 Github. A slightly modified version of `ComputeHFKv2` also appears in a
 `Python` module for [`SnapPy`](https://snappy.math.uic.edu/) under the name
 [`knot_floer_homology`](https://github.com/3-manifolds/knot_floer_homology),
-and is released under GPL v2.0.
+and is released under GPL v2.0 or later.
 
 ### Running examples
 The `bundled-HFK` library is made of only header files. In order to see the
