@@ -143,10 +143,12 @@ class Differential_suffix_forest {
     root_nodes_.emplace(new_idem, new_idem);
   }
   
-  /* The alternative to defining such a function is to have a global maximum
-   * class
+  /* Set the D-module as trivial, i.e. representing a knot diagram with no
+   * strands.
    */
-  void empty_diagram() {
+  void set_as_trivial() {
+    root_nodes_.clear();
+    differential_arcs_.clear();
     add_gen_bundle(Idem("0"));
   }
   

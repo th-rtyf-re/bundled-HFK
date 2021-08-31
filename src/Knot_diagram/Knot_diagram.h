@@ -140,7 +140,7 @@ class Knot_diagram {
     
     std::ofstream write_file("differential_suffix_tree.tex");  // debug LaTeX file
     D_module d_module;
-    d_module.empty_diagram();  // TO DO: move to a Knot_slice?
+    d_module.set_as_trivial();
     
     /* Box tensor product for each slice */
     for (auto da_bimodule_it = da_bimodules.begin();

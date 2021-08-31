@@ -97,6 +97,11 @@ class BundledDModule {
   
   /* SECTION: Mathematical manipulation of the represented D-module */
   
+  /* Set the represented D-module to be trivial (over the trivial algebra, with
+   * a single generator).
+   */
+  void set_as_trivial();
+  
   /* Dualize the represented D-module */
   void dualize();
   
