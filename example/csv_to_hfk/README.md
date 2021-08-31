@@ -19,7 +19,8 @@ the event. The possible events are:
 - 2: local maximum
 - 3: local minimum
 - 4: global minimum
-It is not required to add the global minimum, a local minimum will be converted
+
+It is not required to add the global minimum; a local minimum will be converted
 to global if needed. However, it is required that all local minima appear in
 position `0`.
 
@@ -34,11 +35,11 @@ As an example,
 0,3
 ```
 represents a right-handed trefoil knot. It can be found at
-`../../data/CSV/right_handed_trefoil.csv`. Thus, as an example, execute
+`../../data/CSV/right_handed_trefoil.csv`. Thus, executing
 ```
 ./bundled-hfk-example ../../data/CSV/right_handed_trefoil.csv
 ```
-You should get the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
+should produce the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 
 ### Visualize the example
 By default, the macro `DRAW` is defined. If this is the case, after executing
