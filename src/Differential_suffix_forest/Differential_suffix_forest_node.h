@@ -3,7 +3,7 @@
  *  Bundled HFK - a knot Floer homology calculator                           *
  *                                                                           *
  *  Copyright (C) 2021  Isaac Ren                                            *
- *  For further details contact Isaac Ren (gopi3.1415@gmail.com)             *
+ *  For further details, contact Isaac Ren (gopi3.1415@gmail.com).           *
  *                                                                           *
  *  This program is free software: you can redistribute it and/or modify     *
  *  it under the terms of the GNU General Public License as published by     *
@@ -36,7 +36,7 @@
 template< class Forest_options >
 class Differential_suffix_forest_node {
  public:
-  using Node = Differential_suffix_forest_node;  // rename itself
+  using Node = typename Forest_options::Node;  // should be this class
   using Idem = typename Forest_options::Idem;
   using Polynomial = typename Forest_options::Polynomial;
   using Gen_type = typename Forest_options::Gen_type;
@@ -80,7 +80,7 @@ class Differential_suffix_forest_node {
    * 
    * Same idea
    */
-  Node& operator=(const Differential_suffix_forest_node& other) {
+  Differential_suffix_forest_node& operator=(const Differential_suffix_forest_node& other) {
     idem_ = other.idem_;
     children_ = other.children_;
     for (auto& child : children_) {
@@ -95,7 +95,7 @@ class Differential_suffix_forest_node {
   }
   
   Differential_suffix_forest_node(Differential_suffix_forest_node&& other) = default;
-  Node& operator=(Differential_suffix_forest_node&& other) = default;
+  Differential_suffix_forest_node& operator=(Differential_suffix_forest_node&& other) = default;
   ~Differential_suffix_forest_node() = default;
   
   using Arc_iterator_const_range = Normal_const_range< std::list< Arc_iterator > >;

@@ -3,7 +3,7 @@
  *  Bundled HFK - a knot Floer homology calculator                           *
  *                                                                           *
  *  Copyright (C) 2021  Isaac Ren                                            *
- *  For further details contact Isaac Ren (gopi3.1415@gmail.com)             *
+ *  For further details, contact Isaac Ren (gopi3.1415@gmail.com).           *
  *                                                                           *
  *  This program is free software: you can redistribute it and/or modify     *
  *  it under the terms of the GNU General Public License as published by     *

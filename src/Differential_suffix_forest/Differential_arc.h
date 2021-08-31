@@ -3,7 +3,7 @@
  *  Bundled HFK - a knot Floer homology calculator                           *
  *                                                                           *
  *  Copyright (C) 2021  Isaac Ren                                            *
- *  For further details contact Isaac Ren (gopi3.1415@gmail.com)             *
+ *  For further details, contact Isaac Ren (gopi3.1415@gmail.com).           *
  *                                                                           *
  *  This program is free software: you can redistribute it and/or modify     *
  *  it under the terms of the GNU General Public License as published by     *
@@ -40,7 +40,7 @@
 template< class Forest_options >
 class Differential_arc {
  public:
-  using Arc = Differential_arc;  // rename self
+  using Arc = typename Forest_options::Arc;  // should be this class
   using Idem = typename Forest_options::Idem;
   using Node = typename Forest_options::Node;
   using Arc_iterator = typename Forest_options::Arc_container::iterator;
