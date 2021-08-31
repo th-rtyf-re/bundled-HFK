@@ -1,0 +1,1 @@
+g++ -std=c++11 -O3 csv_to_hfk.cpp -I ../../src -o bundled-hfk-example
