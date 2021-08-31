@@ -8,7 +8,8 @@ Maria, from March to August 2021.
 
 ### Note on the license
 This program is released under
-[GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+[GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html), or (at your option)
+any later version as published by the Free Software Foundation.
 
 This program uses bits of Ozsváth and Szabó's program
 [`ComputeHFKv2`](https://web.math.princeton.edu/~szabo/HFKcalc.html). The
