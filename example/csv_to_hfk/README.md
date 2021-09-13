@@ -35,9 +35,9 @@ As an example,
 0,3
 ```
 represents a right-handed trefoil knot. It can be found at
-`../../data/CSV/right_handed_trefoil.csv`. Thus, executing
+`../../data/csv/right_handed_trefoil.csv`. Thus, executing
 ```
-./bundled-hfk-example ../../data/CSV/right_handed_trefoil.csv
+./bundled-hfk-example ../../data/csv/right_handed_trefoil.csv
 ```
 should produce the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 

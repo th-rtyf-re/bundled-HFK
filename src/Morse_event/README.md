@@ -3,8 +3,8 @@ A Morse event is the given of a knot slice and its associated DA-bimodule.
 
 ### How to add a Morse event
 It is possible to add any type of knot slice to our knot diagrams, as long as
-the DA-bimodule structure is implementable. For example, we can add marked
-minima in order to calculate link Floer homology.
+the DA-bimodule structure is implementable. For example, we can add a knot
+slice for marked minima in order to calculate link Floer homology.
 
 In order to add a Morse event, follow these steps:
 1. Add an item to the Event enum class in `Knot_slice.h`

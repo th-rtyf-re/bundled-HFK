@@ -3,8 +3,8 @@ A `C++` library for calculating knot Floer homology via Ozsváth and Szabó's
 bordered approach.
 
 This code was written during my (Isaac Ren) stay at Inria Sophia
-Antipolis-Méditerranée, doing an internship under the suprvision of Clément
-Maria, from March to August 2021.
+Antipolis-Méditerranée from March to August 2021, doing an internship under the
+supervision of Clément Maria.
 
 ### Note on the license
 This program is released under

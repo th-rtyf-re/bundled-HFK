@@ -321,7 +321,11 @@ class Differential_suffix_forest {
     }
   }
   
-  /* TO DO: Redo this with something less than quadratic complexity... */  
+  /* For each arc, scan below for an identical arc that would partially cancel
+   * out. If so, raise the lower arc.
+   * 
+   * TO DO: Redo this with something less than quadratic complexity...
+   */  
   void raise_partially_overlapping_arcs_() {
     for (auto arc_it = differential_arcs_.begin();
               arc_it != differential_arcs_.end(); ++arc_it) {
