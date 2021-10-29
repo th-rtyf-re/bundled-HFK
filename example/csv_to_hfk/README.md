@@ -42,8 +42,9 @@ represents a right-handed trefoil knot. It can be found at
 should produce the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 
 ### Visualize the example
-By default, the macro `DRAW` is defined. If this is the case, after executing
-the code, two files will be created: `differential_suffix_tree.tex` and
-`knot_diagram.tex`. Compile the `LaTeX` file `drawings.tex` (provided the
-studied knot is not too big) to see the knot, as well as the differential
-suffix tree at each step of the calculation.
+By default, the macro `DRAW` is defined in `csv_to_hfk.cpp`. If this is the
+case, after executing the code, two files will be created:
+`differential_suffix_tree.tex` and `knot_diagram.tex`. Compile the `LaTeX` file
+`drawings.tex` (provided the studied knot is not too big) to visualize the
+knot, as well as the differential suffix forest at each step of the
+calculation.
