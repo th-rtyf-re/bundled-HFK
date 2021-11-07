@@ -24,6 +24,7 @@
 #define IDEMPOTENT_H_
 
 #include <cstdint>  // int_fast32_t, I think
+#include <iostream>
 #include <initializer_list>
 #include <string>
 #include <vector>
@@ -173,6 +174,11 @@ class Idempotent_short {
     return result;
   }
   
+  friend std::ostream& operator<<(std::ostream& os, const Idempotent_short& idem) {
+    os << idem.to_string();
+    return os;
+  }
+  
  private:
   Idempotent_short_type data_;
   
@@ -282,8 +288,14 @@ class Idempotent_long {
     return result;
   }
   
+  friend std::ostream& operator<<(std::ostream& os, const Idempotent_long< Bit_container >& idem) {
+    os << idem.to_string();
+    return os;
+  }
+  
  private:
   Bit_container data_;
 };
+
 
 #endif  // IDEMPOTENT_H_

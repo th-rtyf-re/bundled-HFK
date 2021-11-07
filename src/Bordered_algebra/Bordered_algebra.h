@@ -24,6 +24,7 @@
 #define BORDERED_ALGEBRA_H_
 
 #include <algorithm>  // none_of
+#include <iostream>
 #include <vector>
 
 /* Bordered algebra.
@@ -205,6 +206,11 @@ struct Bordered_algebra {
       return LRU_string;
     }  // to_string
     
+    friend std::ostream& operator<<(std::ostream& os, const typename Bordered_algebra< Idempotent >::Element& el) {
+      os << el.to_string();
+      return os;
+    }
+    
    private:
     Idem source_idem_;
     Idem target_idem_;
@@ -212,5 +218,6 @@ struct Bordered_algebra {
     std::vector< int > U_weights_;
   };  // Element
 };  // Bordered_algebra
+
 
 #endif  // BORDERED_ALGEBRA_H_
