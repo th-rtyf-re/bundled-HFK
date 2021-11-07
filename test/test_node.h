@@ -19,6 +19,7 @@ class Node {
     type_(-1)
   { }
   
+  /* Access functions */
   int d_parent() const {
     return d_parent_;
   }
@@ -31,6 +32,7 @@ class Node {
     return type_;
   }
   
+  /* Update functions */
   void add_d_after_children(int extra) {
     d_after_children_ += extra;
   }
@@ -43,6 +45,7 @@ class Node {
     type_ = type;
   }
   
+  /* Evaluation functions */
   bool has_parent() const {
     return d_parent_ > 0;
   }

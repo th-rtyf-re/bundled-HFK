@@ -36,6 +36,6 @@ class Arc {
 
 template< class Forest_options >
 std::ostream& operator<<(std::ostream& os, const Arc< Forest_options >& arc) {
-  os << "(" << arc.source() << "|" << arc.value() << "|" << arc.target() << ") " << std::flush;
+  os << "(" << arc.source() << "|" << arc.value() << "|" << arc.target() << ")" << std::flush;
   return os;
 }

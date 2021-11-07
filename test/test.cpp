@@ -49,10 +49,12 @@ int main() {
   
   for (const auto& arc : f2.arcs()) {
     for (const auto& arc2 : f2.arcs_to_source(arc)) {
-      std::cout << "Concatenating " << arc2 << "and " << arc << "gives " << std::flush;
+      std::cout << "Concatenating " << arc2 << " and " << arc << " gives " << std::flush;
       std::cout << f2.concatenate(arc2, arc) << std::endl;
     }
   }
+  
+  f2.concatenate_zigzag(*(std::prev(std::prev(f2.arcs().end()))), *f2.arcs().begin(), *std::next(f2.arcs().begin()));
   
   std::ofstream suffix_forest("differential_suffix_forest.tex");
   f1.TeXify(suffix_forest);

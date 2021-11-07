@@ -290,10 +290,13 @@ class Forest {
    */
   
   bool compatible(const Arc& back_arc, const Arc& front_arc) const {
-    return (back_arc.target() <= front_arc.source()
-            and front_arc.source() < back_arc.target() + nodes_[back_arc.target()].d_after_children());
+    return ((back_arc.target() <= front_arc.source()
+             and front_arc.source() < back_arc.target() + nodes_[back_arc.target()].d_after_children())
+         or (front_arc.source() <= back_arc.target()
+             and back_arc.target() < front_arc.source() + nodes_[front_arc.source()].d_after_children()));
   }
   
+  /* Concatenate two arcs, assuming that they are concatenable */
   Arc concatenate(const Arc& back_arc, const Arc& front_arc) const {
     int difference = front_arc.source() - back_arc.target();
     if (difference >= 0) {
@@ -304,6 +307,50 @@ class Forest {
     }
   }
   
+  /* Check if the a zig-zag concatenation is possible, assuming that the back
+   * and front arcs are compatible with the reverse arc, and then concatenate
+   * if possible and add to the multi-indexed set of arcs.
+   * 
+   * This will be used in homotopy reduction.
+   */
+  void concatenate_zigzag(const Arc& back_arc, const Arc& reverse_arc, const Arc& front_arc) {
+    int source = back_arc.source();
+    int target = front_arc.target();
+    
+    int back_diff = back_arc.target() - reverse_arc.target();
+    if (back_diff < 0) {
+      source += back_diff;
+      back_diff = 0;
+    }
+    
+    int front_diff = front_arc.source() - reverse_arc.source();
+    if (front_diff < 0) {
+      target += front_diff;
+      front_diff = 0;
+    }
+    
+    // At this point, the back and front arcs are at least as high as the
+    // reverse arc.
+    
+    if (back_diff <= front_diff and front_diff < back_diff + nodes_[back_arc.target()].d_after_children()) {
+      source += front_diff - back_diff;
+      insert_arc_(Arc(source, target, back_arc.value() * front_arc.value()));
+    }
+    else if (front_diff <= back_diff and back_diff < front_diff + nodes_[front_arc.source()].d_after_children()) {
+      target += back_diff - front_diff;
+      insert_arc_(Arc(source, target, back_arc.value() * front_arc.value()));
+    }
+  }
+  
+ private:
+  /* Insert an arc into the multi-indexed set
+   */
+  void insert_arc_(Arc arc) {
+    /* to do */
+    std::cout << "Need to insert the arc " << arc << std::endl;
+  }
+  
+ public:
   /* TeXify */
   
   void TeXify(std::ofstream& write_file) {
@@ -419,7 +466,7 @@ std::ostream& operator<<(std::ostream& os, const Forest& forest) {
   os << std::endl;
   os << "Forest arcs: " << std::flush;
   for (auto& arc : forest.arcs()) {
-    os << arc;
+    os << arc << " ";
   }
   os << std::endl;
   return os;
