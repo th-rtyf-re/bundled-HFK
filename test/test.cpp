@@ -4,8 +4,9 @@
 #include "test_forest.h"
 
 int main() {
+  using Forest = Forest<>;
   using Idem = typename Forest::Idem;
-  using Alg_el = typename Forest::Arc::Coefficient_value;
+  using Alg_el = typename Forest::Alg_el;
   
   Forest f0;
   
