@@ -42,11 +42,11 @@ int main() {
   f2.declare_arc(3, 10, a1);
   f2.declare_arc(3, 2, a2);
   f2.declare_arc(11, 1, a2);
+  f2.declare_arc(4, 8, a1);
   
   f2.declare_arc(Alg_el(Idem("0"), Idem("1")), 5, 8, *f1.arcs().begin(), f1);
   f2.lock_arcs();
   
-  std::cout << f2;
   
   for (const auto& arc : f2.arcs()) {
     for (const auto& arc2 : f2.arcs_to_source(arc)) {
@@ -55,7 +55,10 @@ int main() {
     }
   }
   
-  f2.concatenate_zigzag(*(std::prev(std::prev(f2.arcs().end()))), *f2.arcs().begin(), *std::next(f2.arcs().begin()));
+  f2.reduce();
+  
+  std::cout << f2;
+  
   
   std::ofstream suffix_forest("differential_suffix_forest.tex");
   f1.TeXify(suffix_forest);
