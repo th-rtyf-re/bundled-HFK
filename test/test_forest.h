@@ -1,3 +1,6 @@
+#ifndef TEST_FOREST_H_
+#define TEST_FOREST_H_
+
 #include <algorithm>  // copy_if
 #include <fstream>
 #include <functional>  // reference_wrapper
@@ -12,7 +15,25 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-#include "Differential_suffix_forest/Differential_suffix_forest_options.h"
+#include "Bordered_algebra/Bordered_algebra.h"
+#include "Bordered_algebra/Idempotent.h"
+
+struct Forest_options_default_short {
+  using Idem = Idempotent_short;
+  using Bordered_algebra = Bordered_algebra< Idem >;
+  using Alg_el = typename Bordered_algebra::Element;
+  using Gen_type = unsigned char;  // no need to pass by reference excessively
+  using Weights = std::pair< int, int >;
+};
+
+struct Forest_options_default_long {
+  using Idem = Idempotent_long< std::vector< bool > >;
+  using Bordered_algebra = Bordered_algebra< Idem >;
+  using Alg_el = typename Bordered_algebra::Element;
+  using Gen_type = unsigned char;  // no need to pass by reference excessively
+  using Weights = std::pair< int, int >;
+};
+
 
 /* Differential suffix forest.
  * 
@@ -27,8 +48,7 @@ class Forest {
   using Gen_type = typename Forest_options::Gen_type;
   using Bordered_algebra = typename Forest_options::Bordered_algebra;
   using Alg_el = typename Forest_options::Alg_el;
-  using Polynomial = typename Forest_options::Polynomial;
-  using Monomial = typename Polynomial::Monomial;
+  using Weights = typename Forest_options::Weights;
     
   struct Node {
     /* Constructor when we know the parent, and when there are no arcs yet.
@@ -43,7 +63,7 @@ class Forest {
     
     int d_parent;
     int d_after_children;
-    Monomial weights;
+    Weights weights;
 #ifdef DRAW
     std::string label;
 #endif  // DRAW
@@ -68,8 +88,7 @@ class Forest {
          << "|"
 #endif  // DRAW
          << node.d_after_children
-         << "> "
-         << std::flush;
+         << "> ";
       return os;
     }
   };
@@ -102,8 +121,7 @@ class Forest {
          << arc.value
          << "|"
          << arc.target
-         << ")"
-         << std::flush;
+         << ")";
       return os;
     }
   };
@@ -181,7 +199,7 @@ class Forest {
     declared_subtrees_[new_idem];
   }
   
-  /* For debugging purposes only */
+  /* For debugging purposes only - to be removed */
   void add_gen_bundle(Idem new_idem, Gen_type new_type, int root) {
     declared_subtrees_[new_idem].emplace_back(new_type, root);
   }
@@ -193,7 +211,7 @@ class Forest {
    * imposes that Gen_type can be converted to int.
    */
   void lock_generators(const Forest& old_forest,
-                     const std::vector< Monomial >& first_layer_weights,
+                     const std::vector< Weights >& first_layer_weights,
                      const std::vector< std::string >& first_layer_labels) {
     nodes_.clear();
     for (auto& map_value : declared_subtrees_) {
@@ -225,7 +243,7 @@ class Forest {
     declared_subtrees_.clear();
   }
   
-  /* Lock subtrees, but only the roots */
+  /* Lock subtrees, but only the roots - to be removed */
   void lock_generators() {
     nodes_.clear();
     for (auto& map_value : declared_subtrees_) {
@@ -268,7 +286,7 @@ class Forest {
     declared_arcs_.emplace_back(source, target, new_value);
   }
   
-  /* Only for debugging purposes */
+  /* Only for debugging purposes - to be removed */
   void add_coef_bundle(int source, int target, Alg_el value) {
     declared_arcs_.emplace_back(source, target, value);
   }
@@ -660,14 +678,19 @@ class Forest {
     }
   }
   
+  /* Homotopy reduction of the forest to an irreducible one.
+   */
   void reduce() {
     bool reduction = true;
     while (reduction) {
       reduction = false;
-      for (auto arc_it = arcs_.begin(); arc_it != arcs_.end(); ++arc_it) {
+      for (auto arc_it = arcs_.begin(); arc_it != arcs_.end();) {
         if (arc_it->value.is_invertible()) {
           reduction = true;
-          contract_(arc_it);
+          arc_it = contract_(arc_it);
+        }
+        else {
+          ++arc_it;
         }
       }
     }
@@ -676,7 +699,10 @@ class Forest {
  private:
   
   
-  /* Contract an invertible arc. Return the next 
+  /* Contract an invertible arc. Return the next
+   * 
+   * Note for mathematicians: it is not possible to have a back arc equal to
+   * front arc, for grading reasons.
    */
   Arc_iterator contract_(const Arc_iterator& reverse_arc_it) {
     std::vector< Arc > zigzag_arcs;
@@ -699,8 +725,8 @@ class Forest {
       insert_arc_(zigzag_arc);
     }
     
-    mark_to_be_deleted_(reverse_arc.source);
-    mark_to_be_deleted_(reverse_arc.target);
+    delete_subtree_(greatest_single_child_ancestor_(reverse_arc_it->source));
+    delete_subtree_(greatest_single_child_ancestor_(reverse_arc_it->target));
     
     return arcs_.erase(reverse_arc_it);
   }
@@ -757,33 +783,85 @@ class Forest {
     }
   }
   
-  /* Mark all nodes descending from a given node, as well as all ancestors
-   * with only one child, as to-be-deleted.
+  /* Return the greatest ancestor of a given node such that the ancestor only
+   * has one child.
    */
-  void mark_to_be_deleted_(int node) {
+  int greatest_single_child_ancestor_(int node) const {
+    int d_parent = nodes_[node].d_parent;
+    int parent = node - d_parent;
+    while (d_parent != 0 and nodes_[node].d_after_children + 1== nodes_[parent].d_after_children) {
+      node = parent;
+      d_parent = nodes_[node].d_parent;
+      parent = node - 1;
+    }
+    return node;
+  }
+  
+  /* Mark all nodes above and including the given node. Erase all arcs to and
+   * from above the given node.
+   */
+  void delete_subtree_(int node) {
     for (int i = node; i != node + nodes_[node].d_after_children; ++i) {
       nodes_[i].to_be_deleted = true;
     }
     
-    int d_parent = nodes_[node].d_parent;
-    int parent = node - d_parent;
-    while (d_parent != 0 and nodes_[node].d_after_children == nodes_[parent].d_after_children + 1) {
-      nodes_[parent].to_be_deleted = true;
-      int d_parent = nodes_[node].d_parent;
-      int parent = node - d_parent;
+    delete_arcs_above_< Source >(node);
+    delete_arcs_above_< Target >(node);
+  }
+  
+  /* Delete all arcs whose source or target is above a given node.
+   */
+  template< class Tag >
+  void delete_arcs_above_(int node) {
+    auto& arcs_view = arcs_.template get< Tag >();
+    auto it_begin = arcs_view.lower_bound(node);
+    auto it_end = arcs_view.lower_bound(node + nodes_[node].d_after_children);
+    arcs_view.erase(it_begin, it_end);
+  }
+  
+ public:
+  template< class Polynomial >
+  Polynomial poincare_polynomial(const Idem& idem = Idem("0")) const {
+    // find root with given idempotent
+    for (const auto& value_pair : root_idems_) {
+      if (value_pair.second == idem) {
+        return poincare_polynomial_node_< Polynomial >(value_pair.first);
+      }
+    }
+    return Polynomial(0);
+  }
+  
+  
+ private:
+  template< class Polynomial >
+  Polynomial poincare_polynomial_node_(const int node) const {
+    if (nodes_[node].no_children()) {
+      return Polynomial(1);
+    }
+    else {
+      Polynomial poly = 0;
+      for (int child = node + 1;
+           child != node + nodes_[node].d_after_children;
+           child += nodes_[child].d_after_children) {
+        Polynomial child_poly = poincare_polynomial_node_< Polynomial >(child);
+        child_poly *= nodes_[node].weights;
+        poly += child_poly;
+      }
+      return poly;
     }
   }
   
  public:
+  
   /* I/O interface */
   
   friend std::ostream& operator<<(std::ostream& os, const Forest& forest) {
-    os << "Forest nodes: " << std::flush;
+    os << "Forest nodes: ";
     for (auto& node : forest.node_container_()) {
       os << node;
     }
     os << std::endl;
-    os << "Forest arcs: " << std::flush;
+    os << "Forest arcs: ";
     for (auto& arc : forest.coef_bundles()) {
       os << arc << " ";
     }
@@ -896,9 +974,11 @@ class Forest {
   Arc_container arcs_;
   
   /* Auxiliary data structures */
-  std::map< const Idem, std::vector< std::pair< Gen_type, int > > > declared_subtrees_;
+  std::map< Idem, std::vector< std::pair< Gen_type, int > > > declared_subtrees_;
   std::vector< Arc > declared_arcs_;
   
   Root_handle_container root_idems_;
   std::map< std::pair< Idem, Gen_type >, int > first_layer_nodes_;
 };
+
+#endif  // TEST_FOREST_H_
