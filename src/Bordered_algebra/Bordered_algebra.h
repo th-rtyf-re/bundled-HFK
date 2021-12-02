@@ -43,7 +43,7 @@ template< class Idempotent >
 struct Bordered_algebra {
   using Idem = Idempotent;
   
-  int n_strands;
+  int n_strands;  // size of matchings and orientations, for convenience
   
   std::vector< int > matchings;
   

@@ -23,6 +23,7 @@
 #ifndef POINCARE_POLYNOMIAL_H_
 #define POINCARE_POLYNOMIAL_H_
 
+#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -45,11 +46,11 @@ class Poincare_polynomial {
   
   Poincare_polynomial(Container& terms) : terms_(terms) { }
   
-  Poincare_polynomial(const int& n) :  // constructor from integer
+  Poincare_polynomial(const int n) :  // constructor from integer
     terms_(n ? Container({{{0, 0}, n}}) : Container())
   { }
   
-  Poincare_polynomial& operator=(const int& n) {  // assignment from integer
+  Poincare_polynomial& operator=(const int n) {  // assignment from integer
     if (n == 0) {
       terms_.clear();
     }
@@ -97,7 +98,8 @@ class Poincare_polynomial {
     return *this;
   }
   
-  Poly& operator*=(const Monomial& monomial) {
+  template< class Monomial_like >
+  Poly& operator*=(const Monomial_like& monomial) {
     for (auto& term : terms_) {
       term.first.first += monomial.first;
       term.first.second += monomial.second;
@@ -110,7 +112,7 @@ class Poincare_polynomial {
   /* TeXify */
   
   /* TeXify as if the first variable is \sqrt{t} */
-  std::string to_string() {
+  std::string to_string() const {
     if (terms_.empty()) {
       return "0";
     }
@@ -146,6 +148,11 @@ class Poincare_polynomial {
       result.erase(result.end() - 3, result.end());
       return result;
     }
+  }
+  
+  friend std::ostream& operator<<(std::ostream& os, const Poincare_polynomial& poly) {
+    os << poly.to_string();
+    return os;
   }
   
  private:
