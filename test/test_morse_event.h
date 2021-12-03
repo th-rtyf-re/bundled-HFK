@@ -37,28 +37,28 @@ struct Knot_slice_concept :
       const boost::type_erasure::_self
     >,
     has_to_string<
-      std::string(const std::pair< int, int >, const int),
+      std::string(const std::pair< int, int >, const std::pair< int, int >&),
       const boost::type_erasure::_self
     >
   >
 { };
 
-BOOST_TYPE_ERASURE_MEMBER(weights)
-BOOST_TYPE_ERASURE_MEMBER(labels)
+BOOST_TYPE_ERASURE_MEMBER(get_weights)
+BOOST_TYPE_ERASURE_MEMBER(get_labels)
 BOOST_TYPE_ERASURE_MEMBER(tensor_generators)
 BOOST_TYPE_ERASURE_MEMBER(tensor_coefficients)
 
 template< class D_module >
 struct DA_bimodule_concept :
   boost::mpl::vector<
-    has_weights<
+    has_get_weights<
       std::vector< typename D_module::Weights >(
         const typename D_module::Bordered_algebra&,
         const typename D_module::Bordered_algebra&
       ),
       const boost::type_erasure::_self
     >,
-    has_labels<
+    has_get_labels<
       std::vector< std::string >(
         const typename D_module::Bordered_algebra&,
         const typename D_module::Bordered_algebra&
@@ -75,8 +75,8 @@ struct DA_bimodule_concept :
     >,
     has_tensor_coefficients<
       D_module(
-        const D_module&,
         D_module&,
+        const D_module&,
         const typename D_module::Bordered_algebra&,
         const typename D_module::Bordered_algebra&
       ),

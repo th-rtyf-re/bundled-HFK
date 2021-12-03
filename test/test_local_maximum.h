@@ -18,16 +18,13 @@ class Local_maximum {
   using Coef_bundle = typename D_module::Coef_bundle;
   using Weights = typename D_module::Weights;  // currently, pair of int
   
-  Local_maximum(int position) :
-    position_(position)
-  { }
-  
   Local_maximum(const std::vector< boost::any >& args) :
     position_(args.empty()? 0 : boost::any_cast< int >(args[0]))
   { }
   
   
   /* Topological methods */
+  
   std::vector< int > lower_matchings(std::vector< int > matchings) const {
     for (int match : matchings) {
       if (match >= position_) {
@@ -50,20 +47,21 @@ class Local_maximum {
   
   /* Return the LaTeX KnotDiagram2ASCII string for the knot slice.
    */
-  std::string to_string(const std::pair< int, int >& margins, const int lower_n_strands) const {
+  std::string to_string(const std::pair< int, int >& margins, const std::pair< int, int >& n_strands) const {
     return std::string(margins.first, '0')
       + std::string(position_, 'r')
       + "a"
-      + std::string(lower_n_strands - position_ - 2, 'l')
+      + std::string(n_strands.second - position_ - 2, 'l')
       + std::string(margins.second, '0');
   }
   
   /* Algebraic methods */
-  std::vector< Weights > weights(const Algebra&, const Algebra&) const {
+  
+  std::vector< Weights > get_weights(const Algebra&, const Algebra&) const {
     return std::vector< Weights >(3, {0, 0});
   }
   
-  std::vector< std::string > labels(const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  std::vector< std::string > get_labels(const Algebra& upper_algebra, const Algebra& lower_algebra) const {
     std::vector< std::string > labels(3);
     std::string symbols;
     if (lower_algebra.orientations[position_]) {  // clock
@@ -80,15 +78,15 @@ class Local_maximum {
     return labels;
   }
   
-  D_module tensor_generators(const D_module& old_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  D_module tensor_generators(const D_module& old_d_module, const Algebra&, const Algebra&) const {
     D_module new_d_module;
-    delta_0_(old_d_module, new_d_module);
+    delta_0_(new_d_module, old_d_module);
     return new_d_module;
   }
   
-  D_module& tensor_coefficients(const D_module& old_d_module, D_module& new_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
-    delta_1_(old_d_module, new_d_module);
-    delta_2_(old_d_module, new_d_module);
+  D_module& tensor_coefficients(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
+    delta_1_(new_d_module, old_d_module);
+    delta_2_(new_d_module, old_d_module);
     return new_d_module;
   }
   
@@ -99,7 +97,7 @@ class Local_maximum {
     Z
   };
   
-  void delta_0_(const D_module& old_d_module, D_module& new_d_module) const {
+  void delta_0_(D_module& new_d_module, const D_module& old_d_module) const {
     for (const auto& gen_handle : old_d_module.gen_bundle_handles()) {
       const Idem& old_idem = old_d_module.idem(gen_handle);
       
@@ -117,7 +115,7 @@ class Local_maximum {
     }
   }
   
-  void delta_1_(const D_module& old_d_module, D_module& new_d_module) const {
+  void delta_1_(D_module& new_d_module, const D_module& old_d_module) const {
     for (const auto& gen_handle : old_d_module.gen_bundle_handles()) {
       const Idem& old_idem = old_d_module.idem(gen_handle);
       
@@ -131,7 +129,7 @@ class Local_maximum {
   }
   
   /* See [OzsvathSzabo2018, Lemma 8.1] */
-  void delta_2_(const D_module& old_d_module, D_module& new_d_module) const {
+  void delta_2_(D_module& new_d_module, const D_module& old_d_module) const {
     for (const auto& coef : old_d_module.coef_bundles()) {
       const Idem& back_idem = old_d_module.source_idem(coef);
       const Idem& front_idem = old_d_module.target_idem(coef);

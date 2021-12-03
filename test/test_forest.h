@@ -15,24 +15,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-#include "Bordered_algebra/Bordered_algebra.h"
-#include "Bordered_algebra/Idempotent.h"
-
-struct Forest_options_default_short {
-  using Idem = Idempotent_short;
-  using Bordered_algebra = Bordered_algebra< Idem >;
-  using Alg_el = typename Bordered_algebra::Element;
-  using Gen_type = unsigned char;  // no need to pass by reference excessively
-  using Weights = std::pair< int, int >;
-};
-
-struct Forest_options_default_long {
-  using Idem = Idempotent_long< std::vector< bool > >;
-  using Bordered_algebra = Bordered_algebra< Idem >;
-  using Alg_el = typename Bordered_algebra::Element;
-  using Gen_type = unsigned char;  // no need to pass by reference excessively
-  using Weights = std::pair< int, int >;
-};
+#include "test_forest_options.h"
 
 
 /* Differential suffix forest.
@@ -140,14 +123,8 @@ class Forest {
     >
   >;
   
-  using Arc_source_container = typename Arc_container::template index< Source >::type;
-  using Arc_target_container = typename Arc_container::template index< Target >::type;
-  using Arc_source_iterator = typename Arc_source_container::iterator;
-  using Arc_target_iterator = typename Arc_target_container::iterator;
-  
-  using Arc_view = Arc_source_container;
-  using Arc_iterator = Arc_source_iterator;
-  
+  using Arc_view = typename Arc_container::template index< Source >::type;
+  using Arc_iterator = typename Arc_view::iterator;
   using Arc_reference = std::reference_wrapper< const Arc >;
   
   using Root_handle_container = std::map< int, Idem >;
@@ -871,7 +848,7 @@ class Forest {
 
 #ifdef DRAW
   /* TeXify */
-  void TeXify(std::ofstream& write_file) {
+  void TeXify(std::ofstream& write_file) const {
     Grid_ grid;
     
     for (auto value_pair : root_idems_) {
@@ -938,7 +915,7 @@ class Forest {
   static constexpr float y_sep_ = .8;  // vertical distance between nodes
   static constexpr float poly_sep_ = .3;  // vertical distance between polynomial and leaf
   
-  void add_to_grid_(Grid_& grid, int layer, int node) {
+  void add_to_grid_(Grid_& grid, int layer, int node) const {
     float x;
     if (nodes_[node].no_children()) {  // no children
       while (grid.size() <= layer) {  // make space for point

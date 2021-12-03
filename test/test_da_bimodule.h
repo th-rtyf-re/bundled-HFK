@@ -24,21 +24,17 @@ struct DA_bimodule {
       da_bimodule.morse_event.tensor_generators(old_d_module,
                                                 da_bimodule.upper_algebra,
                                                 da_bimodule.lower_algebra);
-    std::cout << "[dab] tensored generators" << std::endl;
-    
-    auto weights = da_bimodule.morse_event.weights(da_bimodule.upper_algebra,
-                                                   da_bimodule.lower_algebra);
-    std::cout << "[dab] computed weights" << std::endl;
-    auto labels = da_bimodule.morse_event.labels(da_bimodule.upper_algebra,
-                                                 da_bimodule.lower_algebra);
-    std::cout << "[dab] computed labels" << std::endl;
+    const auto weights =
+      da_bimodule.morse_event.get_weights(da_bimodule.upper_algebra,
+                                          da_bimodule.lower_algebra);
+    const auto labels =
+      da_bimodule.morse_event.get_labels(da_bimodule.upper_algebra,
+                                         da_bimodule.lower_algebra);
     new_d_module.lock_generators(old_d_module, weights, labels);
-    std::cout << "[dab] locked generators" << std::endl;
-    da_bimodule.morse_event.tensor_coefficients(old_d_module,
-                                                new_d_module,
+    da_bimodule.morse_event.tensor_coefficients(new_d_module,
+                                                old_d_module,
                                                 da_bimodule.upper_algebra,
                                                 da_bimodule.lower_algebra);
-    std::cout << "[dab] tensored coefficients" << std::endl;
     new_d_module.lock_coefficients();
     return new_d_module;
   }
