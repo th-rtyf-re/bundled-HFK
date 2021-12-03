@@ -6,22 +6,17 @@
 
 #include <boost/any.hpp>
 
-#include "test_morse_event.h"
 #include "test_da_bimodule.h"
+#include "test_forest.h"
+#include "test_morse_event.h"
 
-template< class ...Ts >
-struct D_module_pack;
-
-template< template< class > class ...Ts >
-struct Morse_event_pack;
-
-template< class ...Ts >
-class Knot_diagram;
-
-// Need at least one D_module and one Morse event
-template< class D_module_default, class ...D_module_others, template< class > class ...Morse_events >
-class Knot_diagram< D_module_pack< D_module_default, D_module_others... >, Morse_event_pack< Morse_events... > > {
+/* None of this is optimized, because its cost is minimal in the big picture.
+ */
+template< template< class > class ...Morse_events >
+class Knot_diagram {
  public:
+  using D_module_default = Forest<>;
+  
   Knot_diagram () { }
   
   /* Import from CSV.
@@ -59,15 +54,15 @@ class Knot_diagram< D_module_pack< D_module_default, D_module_others... >, Morse
       morse_event_data_.push_back({event, {position}});
     }
     morse_event_csv.close();
+    
+    morse_events_default_ = Detail_<>::get_morse_events(morse_event_data_);
   }  // import_csv
   
   int max_n_strands() const {
     int n_strands = 0;
     int max_n_strands = 0;
     
-    const auto morse_events = Detail_< D_module_default >::morse_events_();
-    
-    for (const auto morse_event : morse_events) {
+    for (const auto morse_event : morse_events_default_) {
       // hack to get lower n strands via the lower matchings vector
       n_strands = morse_event.lower_matchings(std::vector< int >(n_strands, 0)).size();
       if (n_strands > max_n_strands) {
@@ -83,19 +78,15 @@ class Knot_diagram< D_module_pack< D_module_default, D_module_others... >, Morse
     std::ofstream suffix_forest("differential_suffix_forest.tex");
 #endif  // DRAW
     
-    const auto da_bimodules = Detail_< D_module >::da_bimodules_(morse_event_data_);
+    const auto da_bimodules = Detail_< D_module >::get_da_bimodules(morse_event_data_);
     
     //std::ofstream write_file("differential_suffix_forest.tex");  // debug LaTeX file
     D_module d_module;
     d_module.set_as_trivial();
     
-    std::cout << "[kd] D-module is trivial" << std::endl;
-    
     // box tensor product for each Morse event
     for (const auto& da_bimodule : da_bimodules) {
-      std::cout << "[kd] start loop" << std::endl;
       d_module = box_tensor_product(da_bimodule, d_module);
-      std::cout << "[kd] tensor done" << std::endl;
       d_module.reduce();
 #ifdef DRAW
       d_module.TeXify(suffix_forest);
@@ -106,28 +97,26 @@ class Knot_diagram< D_module_pack< D_module_default, D_module_others... >, Morse
     suffix_forest.close();
 #endif  // DRAW
     
-    std::cout << "[kd] math done" << std::endl;
-    
     return d_module.template poincare_polynomial< Polynomial >();
   }
   
  private:
   
-  /* All the private methods depend on the choice of D-modules. In order to
+  /* All the private methods depend on the choice of D-module. In order to
    * make things hopefully more readable, I've put all these methods in a
    * private struct Detail_, templated by D_module, as static methods.
    */
-  template< class D_module >
+  template< class D_module = D_module_default >
   struct Detail_ {
     using Bordered_algebra = typename D_module::Bordered_algebra;
     using Morse_event = Morse_event< D_module >;
     using DA_bimodule = DA_bimodule< Morse_event, D_module >;
     
-    static std::vector< DA_bimodule > da_bimodules_(const std::vector< std::pair< int, std::vector< boost::any > > >& morse_event_data) {
+    static std::vector< DA_bimodule > get_da_bimodules(const std::vector< std::pair< int, std::vector< boost::any > > >& morse_event_data) {
       std::vector< DA_bimodule > da_bimodules;
       
-      const auto morse_events = morse_events_(morse_event_data);
-      const auto algebras = bordered_algebras_(morse_events);
+      const auto morse_events = get_morse_events(morse_event_data);
+      const auto algebras = get_bordered_algebras(morse_events);
       
       for (int i = 0; i != morse_events.size(); ++i) {
         da_bimodules.emplace_back(morse_events[i],
@@ -138,36 +127,17 @@ class Knot_diagram< D_module_pack< D_module_default, D_module_others... >, Morse
       return da_bimodules;
     }
     
-    static std::vector< Morse_event > morse_events_(const std::vector< std::pair< int, std::vector< boost::any > > >& morse_event_data) {
+    static std::vector< Morse_event > get_morse_events(const std::vector< std::pair< int, std::vector< boost::any > > >& morse_event_data) {
       std::vector< Morse_event > morse_events;
       
       for (const auto value_pair : morse_event_data) {
-        morse_events.push_back(instance_< Morse_events... >(value_pair.first, value_pair.second));
+        morse_events.push_back(instance(value_pair.first, value_pair.second));
       }
       
       return morse_events;
     }
     
-    template<
-      template< class > class Morse_events_head,
-      template< class > class Morse_events_neck,
-      template< class > class ...Morse_events_tail >
-    static Morse_event instance_(const int i, const std::vector< boost::any >& args) {
-      if (i == 0) {
-        return Morse_event(Morse_events_head< D_module >(args));
-      }
-      else {
-        return instance_< Morse_events_neck, Morse_events_tail... >(i - 1, args);
-      }
-    }
-    
-    // Initialization
-    template< template< class > class Morse_events_head >
-    static Morse_event instance_(const int, const std::vector< boost::any >& args) {
-      return Morse_event(Morse_events_head< D_module >(args));
-    }
-    
-    static std::vector< Bordered_algebra > bordered_algebras_(const std::vector< Morse_event >& morse_events) {
+    static std::vector< Bordered_algebra > get_bordered_algebras(const std::vector< Morse_event >& morse_events) {
       std::vector< Bordered_algebra > algebras(morse_events.size() + 1);
       
       // Place algebras
@@ -189,7 +159,69 @@ class Knot_diagram< D_module_pack< D_module_default, D_module_others... >, Morse
       }
       return algebras;
     }
+    
+    /* Return an instance of the i^th Morse event, as listed in the template,
+     * constructed using arguments.
+     */
+    static Morse_event instance(const int i, const std::vector< boost::any >& args) {
+      return instance_aux_< 0, Morse_events... >(i, args);
+    }
+    
+   private:
+    /* I need to add a dummy class template because I can't partially
+     * specialize for the initialization otherwise.
+     * The other possibility is requiring at least one Morse event, but
+     * I want to leave the possibility of having no Morse events.
+     */
+    template<
+      int,
+      template< class > class Morse_events_head,
+      template< class > class ...Morse_events_tail >
+    static Morse_event instance_aux_(const int i, const std::vector< boost::any >& args) {
+      if (i == 0) {
+        return Morse_event(Morse_events_head< D_module >(args));
+      }
+      else {
+        return instance_aux_< 0, Morse_events_tail... >(i - 1, args);
+      }
+    }
+    
+    // Initialization: 
+    template< int >
+    static Morse_event instance_aux_(const int, const std::vector< boost::any >&) {
+      return Morse_event();
+    }
   };
   
+ public:
+  /* TeXify */
+  void TeXify(std::ofstream& write_file) const {
+    std::cout << "[kd] Drawing knot..." << std::endl;
+    
+    const auto margins = get_margins_();
+    const auto algebras = Detail_<>::get_bordered_algebras(morse_events_default_);
+    
+    write_file << "\\KnotDiagram{" << std::endl;
+    for (int i = 0; i < morse_events_default_.size(); ++i) {
+      write_file << morse_events_default_[i].to_string(margins[i], {algebras[i].n_strands, algebras[i + 1].n_strands}) << std::endl;
+	}
+    write_file << "}" << std::flush;
+  }
+  
+ private:
+  std::vector< std::pair< int, int > > get_margins_() const {
+    std::vector< std::pair< int, int > > margins;
+    
+    const int m = max_n_strands();
+    
+    std::pair< int, int > current_margins = {m / 2, m / 2};
+    for (const auto& morse_event : morse_events_default_) {
+      current_margins = morse_event.update_margins(current_margins);
+      margins.push_back(current_margins);
+    }
+    return margins;
+  }
+  
   std::vector< std::pair< int, std::vector< boost::any > > > morse_event_data_;
+  std::vector< Morse_event< D_module_default > > morse_events_default_;
 };
