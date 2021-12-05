@@ -74,6 +74,9 @@ class Knot_diagram {
   
   template< class Polynomial, class D_module >
   Polynomial knot_Floer_homology() const {
+#ifdef VERBOSE
+    std::cout << "[kd] Computing knot Floer homology..." << std::endl;
+#endif  // VERBOSE
 #ifdef DRAW
     std::ofstream suffix_forest("differential_suffix_forest.tex");
 #endif  // DRAW
@@ -86,11 +89,21 @@ class Knot_diagram {
     
     // box tensor product for each Morse event
     for (const auto& da_bimodule : da_bimodules) {
+      std::cout << "[kd] Tensoring... " << std::flush;
       d_module = box_tensor_product(da_bimodule, d_module);
+#ifdef DRAW
+      suffix_forest << "Before reduction:\n";
+      d_module.TeXify(suffix_forest);
+      suffix_forest << "\n" << std::flush;
+#endif  // DRAW
+      std::cout << "reducing... " << std::flush;
       d_module.reduce();
 #ifdef DRAW
+      suffix_forest << "After reduction:\n";
       d_module.TeXify(suffix_forest);
+      suffix_forest << "\n\n" << std::flush;
 #endif  // DRAW
+      std::cout << "done." << std::endl;
     }
     
 #ifdef DRAW
@@ -151,7 +164,6 @@ class Knot_diagram {
       }
       
       // Calculate orientations bottom-up
-      algebras.back().orientations = {false, false, true, true};  // temporary debug stuff
       for (int i = morse_events.size() - 1; i >= 0; --i) {
         algebras[i].orientations =
           morse_events[i].upper_orientations(

@@ -39,28 +39,21 @@ class Forest {
      */
     Node(const int d = 0) :
       d_parent(d),
-      d_after_children(1),
+      descendants_offset(1),
+      descendants_size(1),
       weights(0, 0),
       to_be_deleted(false)
     { }
     
     int d_parent;
-    int d_after_children;
+    int descendants_offset;
+    int descendants_size;
     Weights weights;
 #ifdef DRAW
     std::string label;
 #endif  // DRAW
     
     bool to_be_deleted;
-    
-    /* Evaluation functions */
-    bool has_parent() const {
-      return d_parent > 0;
-    }
-    
-    bool no_children() const {
-      return d_after_children == 1;
-    }
     
     friend std::ostream& operator<<(std::ostream& os, const Node& node) {
       os << "<"
@@ -70,7 +63,7 @@ class Forest {
          << node.label
          << "|"
 #endif  // DRAW
-         << node.d_after_children
+         << node.descendants_size
          << "> ";
       return os;
     }
@@ -128,8 +121,15 @@ class Forest {
   using Arc_reference = std::reference_wrapper< const Arc >;
   
   using Root_handle_container = std::map< int, Idem >;
-  using Gen_bundle_handle = typename Root_handle_container::value_type;
+  using Root_handle = typename Root_handle_container::value_type;
+  
+  /* Aliases for external usage */
+  using Gen_bundle_handle_container = Root_handle_container;
+  using Gen_bundle_handle = Root_handle;
   using Coef_bundle = Arc;
+  using Coef_bundle_container = Arc_view;
+  using Coef_bundle_iterator = Arc_iterator;
+  using Coef_bundle_reference = Arc_reference;
   
   const Root_handle_container& gen_bundle_handles() const {
     return root_idems_;
@@ -139,8 +139,8 @@ class Forest {
     return arcs_;
   }
   
-  Idem idem(const Gen_bundle_handle& gen_bundle_handle) const {
-    return gen_bundle_handle.second;
+  Idem idem(const Root_handle& root_handle) const {
+    return root_handle.second;
   }
   
   Idem source_idem(const Arc& arc) const {
@@ -160,6 +160,7 @@ class Forest {
     arcs_.clear();
     add_gen_bundle(Idem("0"));
     lock_generators();
+    lock_coefficients();
   }
   
   /* Operations on nodes */
@@ -174,11 +175,6 @@ class Forest {
   
   void add_gen_bundle(Idem new_idem) {
     declared_subtrees_[new_idem];
-  }
-  
-  /* For debugging purposes only - to be removed */
-  void add_gen_bundle(Idem new_idem, Gen_type new_type, int root) {
-    declared_subtrees_[new_idem].emplace_back(new_type, root);
   }
   
   /* Lock subtrees using another forest.
@@ -200,11 +196,11 @@ class Forest {
       for (auto& vec_value : map_value.second) {
         Gen_type& new_type = vec_value.first;
         int old_root = vec_value.second;
-        int d_after_children = old_forest.nodes_[old_root].d_after_children;
+        int descendants_size = old_forest.descendants_size_(old_root);
         int new_child = nodes_.size();
         // Conditionally copy nodes from old forest
         std::copy_if(old_forest.nodes_.begin() + old_root,
-                     old_forest.nodes_.begin() + old_root + d_after_children,
+                     old_forest.nodes_.begin() + old_root + descendants_size,
                      std::back_inserter(nodes_),
                      [](const Node& node) { return !node.to_be_deleted; });
         nodes_[new_child].d_parent = new_child - new_root;
@@ -212,7 +208,7 @@ class Forest {
 #ifdef DRAW
         nodes_[new_child].label = first_layer_labels[new_type];
 #endif  // DRAW
-        nodes_[new_root].d_after_children += d_after_children;
+        nodes_[new_root].descendants_size += descendants_size;
         
         first_layer_nodes_[{new_idem, new_type}] = new_child;
       }
@@ -231,6 +227,34 @@ class Forest {
     }
   }
   
+ private:
+  /* Add old node, taking into account an offset for d_parent. Return the
+   * number of newly added nodes and the offset for later siblings.
+   */
+  std::pair< int, int > lock_generators_rec_(int d_parent_offset, const int old_node, const Forest& old_forest) {
+    int new_node = nodes_.size();
+    nodes_.push_back(old_forest.nodes_[old_node]);
+    nodes_[new_node].d_parent = nodes_[old_node].d_parent - d_parent_offset;
+    nodes_[new_node].descendants_offset = 1;
+    nodes_[new_node].descendants_size = 1;
+    
+    for (int child = old_forest.descendants_begin_(old_node);
+         child != old_forest.descendants_end_(old_node);
+         child += old_forest.descendants_size_(child)) {
+      auto value_pair = lock_generators_rec_(d_parent_offset, child, old_forest);
+      nodes_[new_node].descendants_size += value_pair.first;
+      d_parent_offset += value_pair.second;
+    }
+    
+    if (old_forest.no_children(old_node)) {
+      return {1, old_forest.descendants_size_(old_node) - 1};
+    }
+    else {
+      return {nodes_[new_node].descendants_size, d_parent_offset};
+    }
+  }
+  
+ public:
   /* Arc creation
    * 
    * Arcs are the most annoying object to store.
@@ -242,30 +266,43 @@ class Forest {
    * is greater or equal to the after-children index.
    */
   
-  void add_coef_bundle(Alg_el new_value,
-                   Gen_type back_marking,
-                   Gen_type front_marking,
+  /* I don't know if I want this function. There are currently no methods that
+   * take an algebra element as argument. Any such candidate methods can
+   * also be written for coefficients.
+   */
+//   Alg_el alg_el(const Idem& source_idem,
+//                    const Idem& target_idem,
+//                    const std::vector< int >& U_weights) const {
+//     return Alg_el(source_idem, target_idem, U_weights);
+//   }
+  
+  void add_coef_bundle(const Idem& source_idem,
+                   const Idem& target_idem,
+                   const std::vector< int >& U_weights,
+                   const Gen_type back_marking,
+                   const Gen_type front_marking,
                    const Arc& old_arc,
                    const Forest& old_forest) {
-    int source = first_layer_nodes_.at({new_value.source_idem(), back_marking});
-    int target = first_layer_nodes_.at({new_value.target_idem(), front_marking});
+    const Alg_el new_value(source_idem, target_idem, U_weights);
+    if (new_value.is_null()) { return; }
+    int source = first_layer_nodes_.at({source_idem, back_marking});
+    int target = first_layer_nodes_.at({target_idem, front_marking});
     source += old_forest.d_root_(old_arc.source);
     target += old_forest.d_root_(old_arc.target);
     declared_arcs_.emplace_back(source, target, new_value);
   }
   
-  void add_coef_bundle(Alg_el new_value,
-                   Gen_type back_marking,
-                   Gen_type front_marking,
+  void add_coef_bundle(const Idem& source_idem,
+                   const Idem& target_idem,
+                   const std::vector< int >& U_weights,
+                   const Gen_type back_marking,
+                   const Gen_type front_marking,
                    const Idem& old_idem) {
-    int source = first_layer_nodes_.at({new_value.source_idem(), back_marking});
-    int target = first_layer_nodes_.at({new_value.target_idem(), front_marking});
+    const Alg_el new_value(source_idem, target_idem, U_weights);
+    if (new_value.is_null()) { return; }
+    int source = first_layer_nodes_.at({source_idem, back_marking});
+    int target = first_layer_nodes_.at({target_idem, front_marking});
     declared_arcs_.emplace_back(source, target, new_value);
-  }
-  
-  /* Only for debugging purposes - to be removed */
-  void add_coef_bundle(int source, int target, Alg_el value) {
-    declared_arcs_.emplace_back(source, target, value);
   }
   
   void lock_coefficients() {
@@ -278,12 +315,77 @@ class Forest {
     return nodes_;
   }
   
+  int d_parent_(int node) const {
+    return nodes_[node].d_parent;
+  }
+  
+  int descendants_offset_(int node) const {
+    return nodes_[node].descendants_offset;
+  }
+  
+  int descendants_size_(int node) const {
+    return nodes_[node].descendants_size;
+  }
+  
+  bool to_be_deleted_(int node) const {
+    return nodes_[node].to_be_deleted;
+  }
+  
+  Weights weights_(int node) const {
+    return nodes_[node].weights;
+  }
+  
+  int parent_(int node) const {
+    return node - d_parent_(node);
+  }
+  
+  int descendants_begin_(int node) const {
+    return node + descendants_offset_(node);
+  }
+  
+  int descendants_end_(int node) const {
+    return node + descendants_size_(node);
+  }
+  
+  bool no_children_(int node) const {
+    return descendants_begin_(node) == descendants_end_(node);
+  }
+  
+  bool has_parent_(int node) const {
+    return d_parent_(node) > 0;
+  }
+  
+  void mark_to_be_deleted_(int node) {
+    nodes_[node].to_be_deleted = true;
+  }
+  
+  void increase_descendants_offset_(int node, int increase) {
+    nodes_[node].descendants_offset += increase;
+  }
+  
+  void increase_descendants_size_(int node, int increase) {
+    nodes_[node].descendants_size += increase;
+  }
+  
+  /* Find first non-deleted previous node
+   */
+  int previous_node_(int node) const {
+    int previous_node = node - 1;
+    while (previous_node >= 0 and to_be_deleted_(previous_node)) {
+      --previous_node;
+    }
+    return previous_node;
+  }
+  
+  int root_(int node) const {
+    return (--root_idems_.upper_bound(node))->first;
+  }
+  
   /* Distance from a node to its root. Only used internally when declaring
    * arcs.
    */
   int d_root_(int node) const {
-    int root = (--root_idems_.upper_bound(node))->first;
-    return node - root;
+    return node - root_(node);
   }
   
   void modulo_2_() {
@@ -336,25 +438,25 @@ class Forest {
     
     // Scan descendants
     int start_node = lower_arc_it->source;
-    int n_nodes = nodes_[start_node].d_after_children;
+    int n_nodes = descendants_size_(start_node);
     int end_node = start_node + n_nodes;
     std::vector< bool > marked(n_nodes, false);
     
     for (; upper_arc_it != arcs_.end() and upper_arc_it->source < end_node; ) {
       if (overlap_(*lower_arc_it, *upper_arc_it)) {
         // Mark ascendants
-        int d_parent = nodes_[upper_arc_it->source].d_parent;
+        int d_parent = d_parent_(upper_arc_it->source);
         int parent = upper_arc_it->source - d_parent;
         while (d_parent > 0 and parent >= start_node) {
           marked[parent - start_node] = true;
-          d_parent = nodes_[parent].d_parent;
+          d_parent = d_parent_(parent);
           parent = parent - d_parent;
         }
         
         // Skip arcs until after children
-        int after_children = upper_arc_it->source + nodes_[upper_arc_it->source].d_after_children;
+        int descendants_end = descendants_end_(upper_arc_it->source);
         for (; upper_arc_it != arcs_.end()
-             and upper_arc_it->source < after_children; ++upper_arc_it);
+             and upper_arc_it->source < descendants_end; ++upper_arc_it);
       }
       else {
         ++upper_arc_it;
@@ -373,6 +475,25 @@ class Forest {
     }
   }
   
+  /* Raise original arc to avoid all marked nodes. The vector marked is
+   * indexed relatively to a start node.
+   * 
+   * !TBD! Marked nodes are never tbd.
+   */
+  void raise_arcs_after_(const Arc& old_arc,
+                         const std::vector< bool >& marked,
+                         const int start_node) {
+    for (int rel_node = 1; rel_node != marked.size(); ) {  // relative node index
+      if (!marked[rel_node] and marked[rel_node - d_parent_(start_node + rel_node)]) {
+        arcs_.emplace(start_node + rel_node, old_arc.target + rel_node, old_arc.value);
+        rel_node += descendants_size_(start_node + rel_node);
+      }
+      else {
+        ++rel_node;
+      }
+    }
+  }
+  
   /* Unlike resolving above, where we may cancel more than two arcs at a time,
    * this finds at most one arc below that overlaps. This is used when adding
    * arcs to a container of arcs with no overlaps.
@@ -383,7 +504,7 @@ class Forest {
     int upper_node = upper_arc_it->source;
     std::vector< int > ancestors = { upper_node };
     
-    int d_parent = nodes_[upper_node].d_parent;
+    int d_parent = d_parent_(upper_node);
     int current_node = upper_node;
     auto lower_arc_it = upper_arc_it;
     while (d_parent != 0 and lower_arc_it != arcs_.begin()) {
@@ -400,12 +521,31 @@ class Forest {
         while (d_parent != 0 and endpoint < current_node) {
           ancestors.push_back(current_node);
           current_node -= d_parent;
-          d_parent = nodes_[current_node].d_parent;
+          d_parent = d_parent_(current_node);
         }
       }
     }
     
     return false;
+  }
+  
+  /* ancestors holds source node and all of its ancestors up to the lower
+   * overlapping arc.
+   * 
+   * !TBD! Check that children are not tbd.
+   */
+  void raise_arcs_before_(const Arc& old_arc,
+                          const std::vector< int >& ancestors) {
+    for (int i = 1; i != ancestors.size(); ++i) {
+      int parent = ancestors[i];
+      for (int child = descendants_begin_(parent);
+           child != descendants_end_(parent);
+           child += descendants_size_(child)) {
+        if (child != ancestors[i - 1]) {
+          arcs_.emplace(child, old_arc.target + child - old_arc.source, old_arc.value);
+        }
+      }
+    }
   }
   
   /* Given a critical arc, raise every arc below it to get critical and non-
@@ -423,43 +563,6 @@ class Forest {
     raise_arcs_below_node_< Target >(critical_arc.target);
   }
   
-  /* Raise original arc to avoid all marked nodes. The vector marked is
-   * indexed relatively to a start node.
-   * 
-   * This function requires a hint for emplacement of new arcs. The new arcs
-   * will be placed before the hint.
-   */
-  void raise_arcs_after_(const Arc& old_arc,
-                         const std::vector< bool >& marked,
-                         const int start_node) {
-    for (int rel_node = 1; rel_node != marked.size(); ) {  // relative node index
-      if (!marked[rel_node] and marked[rel_node - nodes_[start_node + rel_node].d_parent]) {
-        arcs_.emplace(start_node + rel_node, old_arc.target + rel_node, old_arc.value);
-        rel_node += nodes_[start_node + rel_node].d_after_children;
-      }
-      else {
-        ++rel_node;
-      }
-    }
-  }
-  
-  /* ancestors holds source node and all of its ancestors up to the lower
-   * overlapping arc.
-   */
-  void raise_arcs_before_(const Arc& old_arc,
-                          const std::vector< int >& ancestors) {
-    for (int i = 1; i != ancestors.size(); ++i) {
-      int parent = ancestors[i];
-      for (int child = parent + 1;
-           child != parent + nodes_[parent].d_after_children;
-           child += nodes_[child].d_after_children) {
-        if (child != ancestors[i - 1]) {
-          arcs_.emplace(child, old_arc.target + child - old_arc.source, old_arc.value);
-        }
-      }
-    }
-  }
-  
   /* Auxiliary function for resolve_critical_. Note that this looks a lot like
    * resolve_overlaps_before_.
    */
@@ -469,7 +572,7 @@ class Forest {
     auto get_endpoint = arcs_view.key_extractor();  // how costly is this?
     
     int current_node = node;
-    int d_parent = nodes_[node].d_parent;
+    int d_parent = d_parent_(node);
     int parent = current_node - d_parent;
     auto arc_it = arcs_view.lower_bound(node);
     
@@ -488,7 +591,7 @@ class Forest {
       else if (endpoint < parent) {
         while (d_parent != 0 and endpoint < parent) {
           current_node = parent;
-          d_parent = nodes_[current_node].d_parent;
+          d_parent = d_parent_(current_node);
           parent -= d_parent;
           add_other_children_(new_endpoints, parent, current_node);
         }
@@ -496,11 +599,13 @@ class Forest {
     }
   }
   
+  /* !TBD! Check that children are not tbd.
+   */
   std::vector< int > children_(int node) const {
     std::vector< int > children;
-    for (int child = node + 1;
-         child != node + nodes_[node].d_after_children;
-         child += nodes_[child].d_after_children) {
+    for (int child = descendants_begin_(node);
+         child != descendants_end_(node);
+         child += descendants_size_(child)) {
       children.push_back(child);
     }
     return children;
@@ -508,13 +613,15 @@ class Forest {
   
   /* Add the children of a parent to a vector of node indices, except for
    * a child that we avoid.
+   * 
+   * !TBD! Check that children are not tbd.
    */
   std::vector< int >& add_other_children_(std::vector< int >& node_stream,
                                           int parent,
                                           int avoiding) const {
-    for (int child = parent + 1;
-         child != parent + nodes_[parent].d_after_children;
-         child += nodes_[child].d_after_children) {
+    for (int child = descendants_begin_(parent);
+         child != descendants_end_(parent);
+         child += descendants_size_(child)) {
       if (child != avoiding) {
         node_stream.push_back(child);
       }
@@ -537,19 +644,19 @@ class Forest {
  public:
   /* Views on arcs */
   
-  std::vector< Arc_reference > arcs_to_source(const Arc& arc) const {
+  std::vector< Arc_reference > others_to_source(const Arc& arc) const {
     return arcs_at_node_< Target >(arc.source);
   }
   
-  std::vector< Arc_reference > arcs_from_target(const Arc& arc) const {
+  std::vector< Arc_reference > others_from_target(const Arc& arc) const {
     return arcs_at_node_< Source >(arc.target);
   }
   
-  std::vector< Arc_reference > arcs_from_source(const Arc& arc) const {
+  std::vector< Arc_reference > others_from_source(const Arc& arc) const {
     return arcs_at_node_< Source >(arc.source, arc);
   }
   
-  std::vector< Arc_reference > arcs_to_target(const Arc& arc) const {
+  std::vector< Arc_reference > others_to_target(const Arc& arc) const {
     return arcs_at_node_< Target >(arc.target, arc);
   }
   
@@ -561,10 +668,10 @@ class Forest {
    */
   template< class Tag >
   std::vector< Arc_reference > arcs_at_node_(int node) const {
-    int after_children = node + nodes_[node].d_after_children;
+    int descendants_end = descendants_end_(node);
     const auto& arcs_view = arcs_.template get< Tag >();
     auto arc_begin = arcs_view.lower_bound(node);
-    auto arc_end = arcs_view.lower_bound(after_children);
+    auto arc_end = arcs_view.lower_bound(descendants_end);
     
     std::vector< Arc_reference > result(arc_begin, arc_end);
     
@@ -581,10 +688,10 @@ class Forest {
    */
   template< class Tag >
   std::vector< Arc_reference > arcs_at_node_(int node, const Arc& avoiding) const {
-    int after_children = node + nodes_[node].d_after_children;
+    int descendants_end = descendants_end_(node);
     const auto& arcs_view = arcs_.template get< Tag >();
     auto arc_begin = arcs_view.lower_bound(node);
-    auto arc_end = arcs_view.lower_bound(after_children);
+    auto arc_end = arcs_view.lower_bound(descendants_end);
     
     std::vector< Arc_reference > result;
     
@@ -610,7 +717,7 @@ class Forest {
                                                     Arc_iterator arc_it,  // past-the-end iterator
                                                     int node) const {
     auto get_endpoint = arcs_view.key_extractor();  // how costly is this?
-    int d_parent = nodes_[node].d_parent;
+    int d_parent = d_parent_(node);
     int current_node = node - d_parent;
     do {
       --arc_it;
@@ -620,7 +727,7 @@ class Forest {
       }
       else if (endpoint < current_node) {
         do {
-          d_parent = nodes_[current_node].d_parent;
+          d_parent = d_parent_(current_node);
           current_node -= d_parent;
         } while (d_parent != 0 and endpoint < current_node);
       }
@@ -639,9 +746,9 @@ class Forest {
   
   bool compatible(const Arc& back_arc, const Arc& front_arc) const {
     return ((back_arc.target <= front_arc.source
-             and front_arc.source < back_arc.target + nodes_[back_arc.target].d_after_children)
+             and front_arc.source < descendants_end_(back_arc.target))
          or (front_arc.source <= back_arc.target
-             and back_arc.target < front_arc.source + nodes_[front_arc.source].d_after_children));
+             and back_arc.target < descendants_end_(front_arc.source)));
   }
   
   /* Concatenate two arcs, assuming that they are concatenable */
@@ -663,6 +770,7 @@ class Forest {
       reduction = false;
       for (auto arc_it = arcs_.begin(); arc_it != arcs_.end();) {
         if (arc_it->value.is_invertible()) {
+          std::cout << "[f] " << *arc_it << std::endl;
           reduction = true;
           arc_it = contract_(arc_it);
         }
@@ -687,9 +795,9 @@ class Forest {
     const Arc& reverse_arc = *reverse_arc_it;
     resolve_critical_(reverse_arc);
     
-    for (const Arc& back_arc : arcs_to_target(reverse_arc)) {
-      for (const Arc& front_arc : arcs_from_source(reverse_arc)) {
-        std::cout << "Making zig-zag arc from "
+    for (const Arc& back_arc : others_to_target(reverse_arc)) {
+      for (const Arc& front_arc : others_from_source(reverse_arc)) {
+        std::cout << "[f] Making zig-zag arc from "
                   << back_arc << " "
                   << reverse_arc << " "
                   << front_arc << std::endl;
@@ -698,14 +806,18 @@ class Forest {
     }
     
     for (const Arc& zigzag_arc : zigzag_arcs) {
-      std::cout << "Adding zig-zag arc " << zigzag_arc << std::endl;
+      std::cout << "[f] Adding zig-zag arc " << zigzag_arc << std::endl;
       insert_arc_(zigzag_arc);
     }
     
-    delete_subtree_(greatest_single_child_ancestor_(reverse_arc_it->source));
-    delete_subtree_(greatest_single_child_ancestor_(reverse_arc_it->target));
+    int target = reverse_arc_it->target;
+    int source = reverse_arc_it->source;
     
-    return arcs_.erase(reverse_arc_it);
+    delete_subtree_(greatest_single_child_ancestor_(target));
+    
+    auto next_arc_it = delete_subtree_(greatest_single_child_ancestor_(source));
+    
+    return next_arc_it;
   }
   
   /* Check if the a zig-zag concatenation is possible, assuming that the back
@@ -737,12 +849,12 @@ class Forest {
     // reverse arc.
     
     if (back_diff <= front_diff
-        and front_diff < back_diff + nodes_[back_arc.target].d_after_children) {
+        and front_diff < back_diff + descendants_size_(back_arc.target)) {
       source += front_diff - back_diff;
       arc_stream.emplace_back(source, target, back_arc.value * front_arc.value);
     }
     else if (front_diff <= back_diff
-             and back_diff < front_diff + nodes_[front_arc.source].d_after_children) {
+             and back_diff < front_diff + descendants_size_(front_arc.source)) {
       target += back_diff - front_diff;
       arc_stream.emplace_back(source, target, back_arc.value * front_arc.value);
     }
@@ -764,11 +876,13 @@ class Forest {
    * has one child.
    */
   int greatest_single_child_ancestor_(int node) const {
-    int d_parent = nodes_[node].d_parent;
+    int d_parent = d_parent_(node);
     int parent = node - d_parent;
-    while (d_parent != 0 and nodes_[node].d_after_children + 1== nodes_[parent].d_after_children) {
+    // Check that node is the first and last child of parent
+    while (d_parent == descendants_offset_(parent)
+           and descendants_end_(node) == descendants_end_(parent)) {
       node = parent;
-      d_parent = nodes_[node].d_parent;
+      d_parent = d_parent_(node);
       parent = node - 1;
     }
     return node;
@@ -777,23 +891,52 @@ class Forest {
   /* Mark all nodes above and including the given node. Erase all arcs to and
    * from above the given node.
    */
-  void delete_subtree_(int node) {
-    for (int i = node; i != node + nodes_[node].d_after_children; ++i) {
-      nodes_[i].to_be_deleted = true;
+  Arc_iterator delete_subtree_(int node) {
+    update_after_deleting_(node);
+    
+    for (int i = node; i != descendants_end_(node); ++i) {
+      mark_to_be_deleted_(i);
     }
     
-    delete_arcs_above_< Source >(node);
+    // If we delete a root, remove it from the generator bundle handles
+    if (!has_parent_(node)) {
+      root_idems_.erase(node);
+    }
+    
     delete_arcs_above_< Target >(node);
+    return delete_arcs_above_< Source >(node);
+  }
+  
+  void update_after_deleting_(int deleted_node) {
+    int node = previous_node_(deleted_node);
+    
+    if (node < 0) { return; }
+    
+    int d_parent = 1;
+    
+    // increase descendant size for nodes on the right edge of the previous
+    // subtree.
+    while (d_parent != 0 and descendants_end_(node) == deleted_node) {
+      increase_descendants_size_(node, descendants_size_(deleted_node));
+      d_parent = d_parent_(node);
+      node -= d_parent;
+    }
+    
+    // Check if deleted node is the first child of its parent.
+    d_parent = d_parent_(deleted_node);
+    if (d_parent == descendants_offset_(parent_(deleted_node))) {
+      increase_descendants_offset_(node, descendants_size_(deleted_node));
+    }
   }
   
   /* Delete all arcs whose source or target is above a given node.
    */
   template< class Tag >
-  void delete_arcs_above_(int node) {
+  typename Arc_container::template index< Tag >::type::iterator delete_arcs_above_(int node) {
     auto& arcs_view = arcs_.template get< Tag >();
     auto it_begin = arcs_view.lower_bound(node);
-    auto it_end = arcs_view.lower_bound(node + nodes_[node].d_after_children);
-    arcs_view.erase(it_begin, it_end);
+    auto it_end = arcs_view.lower_bound(descendants_end_(node));
+    return arcs_view.erase(it_begin, it_end);
   }
   
  public:
@@ -812,16 +955,16 @@ class Forest {
  private:
   template< class Polynomial >
   Polynomial poincare_polynomial_node_(const int node) const {
-    if (nodes_[node].no_children()) {
+    if (no_children_(node)) {
       return Polynomial(1);
     }
     else {
       Polynomial poly = 0;
-      for (int child = node + 1;
-           child != node + nodes_[node].d_after_children;
-           child += nodes_[child].d_after_children) {
+      for (int child = descendants_begin_(node);
+           child != descendants_end_(node);
+           child += descendants_size_(child)) {
         Polynomial child_poly = poincare_polynomial_node_< Polynomial >(child);
-        child_poly *= nodes_[node].weights;
+        child_poly *= weights_(node);
         poly += child_poly;
       }
       return poly;
@@ -887,7 +1030,7 @@ class Forest {
                    << "\\draw[->] ("
                    << grid_point.first
                    << ") -- node[in place]{$"
-                   << nodes_[grid_point.first].label//static_cast<int>(nodes_[grid_point.first].type)
+                   << nodes_[grid_point.first].label
                    << "$} ("
                    << (grid_point.first - nodes_[grid_point.first].d_parent)
                    << ");" << std::endl;
@@ -913,11 +1056,11 @@ class Forest {
   
   static constexpr float min_x_sep_ = 1.;  // minimal horizontal distance between nodes
   static constexpr float y_sep_ = .8;  // vertical distance between nodes
-  static constexpr float poly_sep_ = .3;  // vertical distance between polynomial and leaf
+  //static constexpr float poly_sep_ = .3;  // vertical distance between polynomial and leaf
   
   void add_to_grid_(Grid_& grid, int layer, int node) const {
     float x;
-    if (nodes_[node].no_children()) {  // no children
+    if (no_children_(node)) {  // no children
       while (grid.size() <= layer) {  // make space for point
         grid.push_back(Grid_layer_());
       }
@@ -936,8 +1079,8 @@ class Forest {
       int first_child_index = grid[layer + 1].size();
       
       for (int child = node + 1;
-           child != node + nodes_[node].d_after_children;
-           child += nodes_[child].d_after_children) {
+           child != descendants_end_(node);
+           child += descendants_size_(child)) {
         add_to_grid_(grid, layer + 1, child);
       }
       x = (grid[layer + 1][first_child_index].second + grid[layer + 1].back().second) / 2.;

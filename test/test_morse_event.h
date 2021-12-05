@@ -19,7 +19,7 @@ BOOST_TYPE_ERASURE_MEMBER(upper_orientations)
 BOOST_TYPE_ERASURE_MEMBER(update_margins)
 BOOST_TYPE_ERASURE_MEMBER(to_string)
 
-struct Knot_slice_concept :
+struct Topological_methods :
   boost::mpl::vector<
     has_lower_matchings<
       std::vector< int >(std::vector< int >),
@@ -49,7 +49,7 @@ BOOST_TYPE_ERASURE_MEMBER(tensor_generators)
 BOOST_TYPE_ERASURE_MEMBER(tensor_coefficients)
 
 template< class D_module >
-struct DA_bimodule_concept :
+struct Algebraic_methods :
   boost::mpl::vector<
     has_get_weights<
       std::vector< typename D_module::Weights >(
@@ -67,6 +67,7 @@ struct DA_bimodule_concept :
     >,
     has_tensor_generators<
       D_module(
+        D_module&,
         const D_module&,
         const typename D_module::Bordered_algebra&,
         const typename D_module::Bordered_algebra&
@@ -93,8 +94,8 @@ using Morse_event = boost::type_erasure::any<
     boost::type_erasure::constructible<
       boost::type_erasure::_self(const std::vector< boost::any >&)
     >,
-    Knot_slice_concept,
-    DA_bimodule_concept< D_module >,
+    Topological_methods,
+    Algebraic_methods< D_module >,
     boost::type_erasure::relaxed
   >
 >;

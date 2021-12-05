@@ -14,19 +14,18 @@ class Local_maximum {
   using Idem = typename D_module::Idem;
   using Gen_type = typename D_module::Gen_type;
   using Algebra = typename D_module::Bordered_algebra;
-  using Alg_el = typename D_module::Alg_el;
   using Coef_bundle = typename D_module::Coef_bundle;
   using Weights = typename D_module::Weights;  // currently, pair of int
   
   Local_maximum(const std::vector< boost::any >& args) :
-    position_(args.empty()? 0 : boost::any_cast< int >(args[0]))
+    position_(args.empty() ? 0 : boost::any_cast< int >(args[0]))
   { }
   
   
   /* Topological methods */
   
   std::vector< int > lower_matchings(std::vector< int > matchings) const {
-    for (int match : matchings) {
+    for (int& match : matchings) {
       if (match >= position_) {
         match += 2;
       }
@@ -78,8 +77,7 @@ class Local_maximum {
     return labels;
   }
   
-  D_module tensor_generators(const D_module& old_d_module, const Algebra&, const Algebra&) const {
-    D_module new_d_module;
+  D_module tensor_generators(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
     delta_0_(new_d_module, old_d_module);
     return new_d_module;
   }
@@ -122,8 +120,9 @@ class Local_maximum {
       if (old_idem[position_]) {  // X and Y
         Idem x_idem = extend_(old_idem, X);
         Idem y_idem = extend_(old_idem, Y);
-        new_d_module.add_coef_bundle(Alg_el(x_idem, y_idem), X, Y, old_idem);
-        new_d_module.add_coef_bundle(Alg_el(y_idem, x_idem), Y, X, old_idem);
+        std::vector< int > U_weights(x_idem.size() - 1, 0);
+        new_d_module.add_coef_bundle(x_idem, y_idem, U_weights, X, Y, old_idem);
+        new_d_module.add_coef_bundle(y_idem, x_idem, U_weights, Y, X, old_idem);
       }
     }
   }
@@ -175,9 +174,7 @@ class Local_maximum {
         const Idem& new_source_idem = extend_(back_idem, back_marking);
         const Idem& new_target_idem = extend_(front_idem, front_marking);
         if (new_source_idem.too_far_from(new_target_idem)) { continue; }
-        const Alg_el new_alg_el(new_source_idem, new_target_idem, new_U_weights);
-        if (new_alg_el.is_null()) { continue; }
-        new_d_module.add_coef_bundle(new_alg_el, back_marking, front_marking, coef, old_d_module);
+        new_d_module.add_coef_bundle(new_source_idem, new_target_idem, new_U_weights, back_marking, front_marking, coef, old_d_module);
       }
     }
   }  // delta_2_

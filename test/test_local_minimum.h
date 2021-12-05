@@ -10,12 +10,11 @@ class Local_minimum {
   using Idem = typename D_module::Idem;
   using Gen_type = typename D_module::Gen_type;
   using Algebra = typename D_module::Bordered_algebra;
-  using Alg_el = typename D_module::Alg_el;
   using Coef_bundle = typename D_module::Coef_bundle;
   using Weights = typename D_module::Weights;
   
   Local_minimum(const std::vector< boost::any >& args) :
-    position_(args.empty()? 0 : boost::any_cast< int >(args[0])) 
+    position_(args.empty() ? 0 : boost::any_cast< int >(args[0])) 
   {
     if (position_ != 0) {
       std::cout << "[lm] Warning: local minimum not in position 0."
@@ -96,8 +95,7 @@ class Local_minimum {
     return labels;
   }
   
-  D_module tensor_generators(const D_module& old_d_module, const Algebra&, const Algebra&) const {
-    D_module new_d_module;
+  D_module tensor_generators(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
     delta_0_(new_d_module, old_d_module);
     return new_d_module;
   }
@@ -242,9 +240,7 @@ class Local_minimum {
     
     /* Add composite coefficient, if possible */
     if (new_source_idem.too_far_from(new_target_idem)) { return; }
-    Alg_el new_alg_el(new_source_idem, new_target_idem, new_U_weights);
-    if (new_alg_el.is_null()) { return; }
-    new_d_module.add_coef_bundle(new_alg_el, YR2, YR2, old_coef, old_d_module);
+    new_d_module.add_coef_bundle(new_source_idem, new_target_idem, new_U_weights, YR2, YR2, old_coef, old_d_module);
   }
   
   bool extendable_(const Idem& idem, const Gen_type marking) const {

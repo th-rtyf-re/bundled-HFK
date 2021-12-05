@@ -20,10 +20,12 @@ struct DA_bimodule {
   
   friend D_module box_tensor_product(const DA_bimodule& da_bimodule,
                                      const D_module& old_d_module) {
-    D_module new_d_module =
-      da_bimodule.morse_event.tensor_generators(old_d_module,
-                                                da_bimodule.upper_algebra,
-                                                da_bimodule.lower_algebra);
+    
+    D_module new_d_module;
+    da_bimodule.morse_event.tensor_generators(new_d_module,
+                                              old_d_module,
+                                              da_bimodule.upper_algebra,
+                                              da_bimodule.lower_algebra);
     const auto weights =
       da_bimodule.morse_event.get_weights(da_bimodule.upper_algebra,
                                           da_bimodule.lower_algebra);
