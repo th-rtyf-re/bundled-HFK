@@ -1,9 +1,14 @@
+#ifdef VERBOSE
+#include <iostream>
+#endif  // VERBOSE
+
 /* The user defines classes that satisfy the Morse event concept, but it's
  * easier for Knot diagram to reason with DA bimodules.
  * These are constructed when we call the knot Floer homology function.
  */
 template< class Morse_event, class D_module >
-struct DA_bimodule {
+class DA_bimodule {
+ public:
   using Algebra = typename D_module::Bordered_algebra;
   
   DA_bimodule(const Morse_event morse_event,
@@ -40,4 +45,11 @@ struct DA_bimodule {
     new_d_module.lock_coefficients();
     return new_d_module;
   }
+  
+#ifdef VERBOSE
+  friend std::ostream& operator<<(std::ostream& os, const DA_bimodule& da_bimodule) {
+    os << da_bimodule.morse_event;
+    return os;
+  }
+#endif  // VERBOSE
 };

@@ -8,6 +8,7 @@
 
 #include <boost/type_erasure/any.hpp>
 #include <boost/type_erasure/member.hpp>
+#include <boost/type_erasure/operators.hpp>
 
 #include <boost/any.hpp>
 
@@ -96,6 +97,9 @@ using Morse_event = boost::type_erasure::any<
     >,
     Topological_methods,
     Algebraic_methods< D_module >,
+#ifdef VERBOSE
+    boost::type_erasure::ostreamable<>,
+#endif  // VERBOSE
     boost::type_erasure::relaxed
   >
 >;

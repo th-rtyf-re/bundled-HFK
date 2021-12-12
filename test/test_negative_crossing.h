@@ -1,6 +1,10 @@
 #include <string>
 #include <vector>
 
+#ifdef VERBOSE
+#include <iostream>
+#endif  // VERBOSE
+
 #include <boost/any.hpp>
 
 #include "test_positive_crossing.h"
@@ -70,6 +74,13 @@ class Negative_crossing {
     positive_crossing_.tensor_coefficients(reverse_new_d_module, reverse_old_d_module, upper_algebra, lower_algebra);
     return new_d_module;
   }
+  
+#ifdef VERBOSE
+  friend std::ostream& operator<<(std::ostream& os, const Negative_crossing& morse_event) {
+    os << "negative crossing at position " << morse_event.positive_crossing_.position_;
+    return os;
+  }
+#endif  // VERBOSE
   
  private:
   Positive_crossing positive_crossing_;

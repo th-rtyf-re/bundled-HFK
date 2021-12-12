@@ -1,8 +1,9 @@
-#define DRAW  // For TeXify
-#define VERBOSE
+#define DRAW  // define for LaTeX-related functionality
+#define VERBOSE  // define for more verbose console
 
 #include <iostream>
 #include <fstream>
+#include <string>  // to_string
 
 #include "test_forest.h"
 #include "test_knot_diagram.h"
@@ -30,7 +31,7 @@ int main() {
   knot_diagram.close();
   
   auto pp = kd.knot_Floer_homology< Poincare_polynomial, D_module_short >();
-  std::cout << "Poincare polynomial " << pp << std::endl;
+  std::cout << "Poincare polynomial: " << pp << std::endl;
   
   return 0;
 }

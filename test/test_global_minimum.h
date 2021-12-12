@@ -2,8 +2,11 @@
 #include <utility>  // pair
 #include <vector>
 
-#include <boost/any.hpp>
+#ifdef VERBOSE
+#include <iostream>
+#endif  // VERBOSE
 
+#include <boost/any.hpp>
 
 template< class D_module >
 class Global_minimum {
@@ -55,4 +58,11 @@ class Global_minimum {
   D_module& tensor_coefficients(D_module& new_d_module, const D_module&, const Algebra&, const Algebra&) const {
     return new_d_module;
   }
+  
+#ifdef VERBOSE
+  friend std::ostream& operator<<(std::ostream& os, const Global_minimum& morse_event) {
+    os << "global minimum";
+    return os;
+  }
+#endif  // VERBOSE
 };

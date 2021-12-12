@@ -89,21 +89,25 @@ class Knot_diagram {
     
     // box tensor product for each Morse event
     for (const auto& da_bimodule : da_bimodules) {
-      std::cout << "[kd] Tensoring... " << std::flush;
+      std::cout << "[kd] Tensoring " << da_bimodule << "... " << std::flush;
       d_module = box_tensor_product(da_bimodule, d_module);
 #ifdef DRAW
       suffix_forest << "Before reduction:\n";
       d_module.TeXify(suffix_forest);
       suffix_forest << "\n" << std::flush;
 #endif  // DRAW
+#ifdef VERBOSE
       std::cout << "reducing... " << std::flush;
+#endif  // VERBOSE
       d_module.reduce();
 #ifdef DRAW
       suffix_forest << "After reduction:\n";
       d_module.TeXify(suffix_forest);
       suffix_forest << "\n\n" << std::flush;
 #endif  // DRAW
+#ifdef VERBOSE
       std::cout << "done." << std::endl;
+#endif  // VERBOSE
     }
     
 #ifdef DRAW
@@ -116,8 +120,8 @@ class Knot_diagram {
  private:
   
   /* All the private methods depend on the choice of D-module. In order to
-   * make things hopefully more readable, I've put all these methods in a
-   * private struct Detail_, templated by D_module, as static methods.
+   * make things hopefully more readable, I've put all these methods as static
+   * methods in a private struct Detail_, templated by D_module.
    */
   template< class D_module = D_module_default >
   struct Detail_ {

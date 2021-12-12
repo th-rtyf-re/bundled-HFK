@@ -2,6 +2,10 @@
 #include <utility>  // pair
 #include <vector>
 
+#ifdef VERBOSE
+#include <iostream>
+#endif  // VERBOSE
+
 #include <boost/any.hpp>
 
 /* DA-bimodule for a local maximum.
@@ -87,6 +91,13 @@ class Local_maximum {
     delta_2_(new_d_module, old_d_module);
     return new_d_module;
   }
+  
+#ifdef VERBOSE
+  friend std::ostream& operator<<(std::ostream& os, const Local_maximum& morse_event) {
+    os << "local maximum at position " << morse_event.position_;
+    return os;
+  }
+#endif  // VERBOSE
   
  private:
   enum {

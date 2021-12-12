@@ -8,6 +8,10 @@
 #include <utility>  // pair, swap
 #include <vector>
 
+#ifdef VERBOSE
+#include <iostream>
+#endif  // VERBOSE
+
 #include <boost/any.hpp>
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/for_each.hpp>
@@ -116,6 +120,16 @@ class Positive_crossing {
     delta_3_(new_d_module, old_d_module);
     return new_d_module;
   }
+  
+#ifdef VERBOSE
+  template< class Other_D_module >
+  friend class Negative_crossing;
+  
+  friend std::ostream& operator<<(std::ostream& os, const Positive_crossing& morse_event) {
+    os << "positive crossing at position " << morse_event.position_;
+    return os;
+  }
+#endif  // VERBOSE
   
  private:
   enum {

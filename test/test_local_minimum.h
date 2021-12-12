@@ -2,6 +2,10 @@
 #include <utility>  // pair
 #include <vector>
 
+#ifdef VERBOSE
+#include <iostream>
+#endif  // VERBOSE
+
 #include <boost/any.hpp>
 
 template< class D_module >
@@ -106,6 +110,13 @@ class Local_minimum {
     return new_d_module;
   }
     
+#ifdef VERBOSE
+  friend std::ostream& operator<<(std::ostream& os, const Local_minimum& morse_event) {
+    os << "local minimum at position " << morse_event.position_;
+    return os;
+  }
+#endif  // VERBOSE
+  
  private:
   enum {  // names from [OzsvathSzabo2019, Section 7.2]
     XL1,  // not actually used
