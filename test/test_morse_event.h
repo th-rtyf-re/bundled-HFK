@@ -7,8 +7,8 @@
 #include <vector>
 
 #include <boost/type_erasure/any.hpp>
-#include <boost/type_erasure/member.hpp>
-#include <boost/type_erasure/operators.hpp>
+#include <boost/type_erasure/member.hpp>  // BOOST_TYPE_ERASURE_MEMBER
+#include <boost/type_erasure/operators.hpp>  // ostreamable
 
 #include <boost/any.hpp>
 

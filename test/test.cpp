@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <string>  // to_string
 
 #include "test_forest.h"
 #include "test_knot_diagram.h"
