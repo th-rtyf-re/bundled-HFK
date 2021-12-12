@@ -13,9 +13,6 @@ template< class Forest_options = Forest_options_default_short >
 class Node_container {
  public:
   using Idem = typename Forest_options::Idem;
-  using Gen_type = typename Forest_options::Gen_type;
-  using Bordered_algebra = typename Forest_options::Bordered_algebra;
-  using Alg_el = typename Forest_options::Alg_el;
   using Weights = typename Forest_options::Weights;
   
   using Root_handle_container = std::map< int, Idem >;
@@ -240,11 +237,11 @@ class Node_container {
  public:
   /* Pruning stuff */
   
-  std::vector< int > get_offsets() const {
+  std::vector< int > node_offsets() const {
     std::vector< int > offsets(nodes_.size(), -1);
     int offset = 0;
     for (auto value_pair : root_idems_) {
-      get_offsets_rec_(offsets, offset, value_pair.first);
+      node_offsets_rec_(offsets, offset, value_pair.first);
     }
     offsets.push_back(offset);
     return offsets;
@@ -285,7 +282,7 @@ class Node_container {
   }
   
  private:
-  std::vector< int > get_offsets_rec_(std::vector< int >& offsets,
+  std::vector< int > node_offsets_rec_(std::vector< int >& offsets,
                                       int& offset,
                                       const int node) const {
     offsets[node] = offset;
@@ -293,7 +290,7 @@ class Node_container {
     for (int child = descendants_begin(node);
          child != descendants_end(node);
          child += descendants_size(child)) {
-      get_offsets_rec_(offsets, offset, child);
+      node_offsets_rec_(offsets, offset, child);
     }
     return offsets;
   }
@@ -358,7 +355,7 @@ class Node_container {
     
     std::string extra_options("");
     
-    /* Only put idempotents for the roots */
+    /* Put idempotents for the roots */
     int i = 0;
     for (auto value_pair : root_idems_) {
       Grid_point_& grid_point = grid[0][i];
@@ -399,7 +396,7 @@ class Node_container {
   }
   
  private:
-  using Grid_point_ = std::pair< int, float >;  // index of node & x coordinate
+  using Grid_point_ = std::pair< int, float >;  // index of node and x coordinate
   using Grid_layer_ = std::vector< Grid_point_ >;  // left to right?
   using Grid_ = std::vector< Grid_layer_ >;  // lowest to highest
   
@@ -425,14 +422,14 @@ class Node_container {
       while (grid.size() <= layer + 1) {  // make space for children
         grid.push_back(Grid_layer_());
       }
-      int first_child_index = grid[layer + 1].size();
+      int first_child = grid[layer + 1].size();
       
       for (int child = descendants_begin(node);
            child != descendants_end(node);
            child += descendants_size(child)) {
         add_to_grid_(grid, layer + 1, child);
       }
-      x = (grid[layer + 1][first_child_index].second + grid[layer + 1].back().second) / 2.;
+      x = (grid[layer + 1][first_child].second + grid[layer + 1].back().second) / 2.;
       grid[layer].push_back(Grid_point_(node, x));
     }  // with children
   }

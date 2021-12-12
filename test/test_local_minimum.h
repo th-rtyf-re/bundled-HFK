@@ -251,7 +251,8 @@ class Local_minimum {
     
     /* Add composite coefficient, if possible */
     if (new_source_idem.too_far_from(new_target_idem)) { return; }
-    new_d_module.add_coef_bundle(new_source_idem, new_target_idem, new_U_weights, YR2, YR2, old_coef, old_d_module);
+    auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
+    new_d_module.add_coef_bundle(alg_el, YR2, YR2, old_coef, old_d_module);
   }
   
   bool extendable_(const Idem& idem, const Gen_type marking) const {

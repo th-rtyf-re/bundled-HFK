@@ -229,13 +229,14 @@ class Positive_crossing {
           if (!old_idem[position_ + 2 * we]) { continue; }
           Gen_type we_marking = we ? E : W;
           Idem we_idem = extend_(old_idem, we_marking);
-          std::vector< int > U_weights(we_idem.size() - 1, 0);
-          new_d_module.add_coef_bundle(we_idem, old_idem, U_weights, we_marking, S, old_idem);
+          auto alg_el = new_d_module.alg_el(we_idem, old_idem);
+          new_d_module.add_coef_bundle(alg_el, we_marking, S, old_idem);
           
           if (upper_algebra.matchings[position_] != position_ + 1) {  // curved
             std::vector< int > U_curved(upper_algebra.n_strands, 0);
             U_curved[lower_algebra.matchings[position_ + we]] = 1;
-            new_d_module.add_coef_bundle(old_idem, we_idem, U_curved, S, we_marking, old_idem);
+            auto alg_el = new_d_module.alg_el(old_idem, we_idem, U_curved);
+            new_d_module.add_coef_bundle(alg_el, S, we_marking, old_idem);
           }
         }
       }
@@ -270,7 +271,8 @@ class Positive_crossing {
         else if (front_marking == W) { ++v1; }
         U_weights[position_] = v2 / 2;
         U_weights[position_ + 1] = v1 / 2;
-        new_d_module.add_coef_bundle(new_source_idem, new_target_idem, U_weights, back_marking, front_marking, coef, old_d_module);
+        auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, U_weights);
+        new_d_module.add_coef_bundle(alg_el, back_marking, front_marking, coef, old_d_module);
       }
     }
   }  // delta_2_
@@ -304,7 +306,8 @@ class Positive_crossing {
           new_U_weights[position_] = w2 / 2;
           new_U_weights[position_ + 1] = w1 / 2;
           /* Make and add new differential arc */
-          new_d_module.add_coef_bundle(new_source_idem, new_target_idem, new_U_weights, S, front_marking, concat_coef, old_d_module);
+          auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
+          new_d_module.add_coef_bundle(alg_el, S, front_marking, concat_coef, old_d_module);
         }
       }
     }

@@ -45,7 +45,6 @@ class Negative_crossing {
     return positive_crossing_.to_string(margins, n_strands, symbol);
   }
   
-  
   /* Algebraic methods */
   
   std::vector< Weights > get_weights(const Algebra& upper_algebra, const Algebra& lower_algebra) const {

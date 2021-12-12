@@ -1,7 +1,7 @@
 #ifndef TEST_D_MODULE_REVERSE_VIEW_
 #define TEST_D_MODULE_REVERSE_VIEW_
 
-/* Reverse view of a forest. Should also be a model of the D-module concept
+/* Reverse view of a D-module. Should also be a model of the D-module concept
  */
 template< class D_module >
 class Reverse_D_module {
@@ -16,16 +16,14 @@ class Reverse_D_module {
   using Gen_bundle_handle = typename D_module::Gen_bundle_handle;
   using Coef_bundle = typename D_module::Coef_bundle;
   using Coef_bundle_container = typename D_module::Coef_bundle_container;
-  using Coef_bundle_iterator = typename D_module::Coef_bundle_iterator;
   using Coef_bundle_reference = typename D_module::Coef_bundle_reference;
   
-  
-  Reverse_D_module(D_module& forest) :
-    d_module_(forest)
+  Reverse_D_module(D_module& d_module) :
+    d_module_(d_module)
   { }
   
-  Reverse_D_module(const D_module& forest) :
-    d_module_(const_cast< D_module& >(forest))
+  Reverse_D_module(const D_module& d_module) :
+    d_module_(const_cast< D_module& >(d_module))
   { }
     
   const Gen_bundle_handle_container& gen_bundle_handles() const {
@@ -58,7 +56,11 @@ class Reverse_D_module {
   
   /* Operations on nodes */
   
-  void add_gen_bundle(Idem new_idem, Gen_type new_type, Gen_bundle_handle root_handle) {
+  void add_gen_bundle(
+    Idem new_idem,
+    Gen_type new_type,
+    Gen_bundle_handle root_handle
+  ) {
     d_module_.add_gen_bundle(new_idem, new_type, root_handle);
   }
   
@@ -66,31 +68,53 @@ class Reverse_D_module {
     d_module_.add_gen_bundle(new_idem);
   }
   
-  void lock_generators(const Reverse_D_module< D_module >& old_d_module,
-                     const std::vector< Weights >& first_layer_weights,
-                     const std::vector< std::string >& first_layer_labels) {
-    d_module_.lock_generators(old_d_module.d_module_, first_layer_weights, first_layer_labels);
+  void lock_generators(
+    const Reverse_D_module< D_module >& old_d_module,
+    const std::vector< Weights >& first_layer_weights,
+    const std::vector< std::string >& first_layer_labels
+  ) {
+    d_module_.lock_generators(
+      old_d_module.d_module_,
+      first_layer_weights,
+      first_layer_labels
+    );
   }
   
   /* Coef_bundle creation */
   
-  void add_coef_bundle(const Idem& source_idem,
-                   const Idem& target_idem,
-                   const std::vector< int >& U_weights,
-                   const Gen_type back_marking,
-                   const Gen_type front_marking,
-                   const Coef_bundle& old_coef,
-                   const Reverse_D_module< D_module >& old_d_module) {
-    d_module_.add_coef_bundle(target_idem, source_idem, U_weights, front_marking, back_marking, old_coef, old_d_module.d_module_);
+  template< class ...Args >
+  Alg_el alg_el(const Idem source_idem, const Idem target_idem, Args&&... args) const {
+    return Alg_el(target_idem, source_idem, args...);
   }
   
-  void add_coef_bundle(const Idem& source_idem,
-                   const Idem& target_idem,
-                   const std::vector< int >& U_weights,
-                   const Gen_type back_marking,
-                   const Gen_type front_marking,
-                   const Idem& old_idem) {
-    d_module_.add_coef_bundle(target_idem, source_idem, U_weights, front_marking, back_marking, old_idem);
+  void add_coef_bundle(
+    const Alg_el& new_value,
+    const Gen_type back_marking,
+    const Gen_type front_marking,
+    const Coef_bundle& old_coef,
+    const Reverse_D_module< D_module >& old_d_module
+  ) {
+    d_module_.add_coef_bundle(
+      new_value,
+      front_marking,
+      back_marking,
+      old_coef,
+      old_d_module.d_module_
+    );
+  }
+  
+  void add_coef_bundle(
+    const Alg_el& new_value,
+    const Gen_type back_marking,
+    const Gen_type front_marking,
+    const Idem& old_idem
+  ) {
+    d_module_.add_coef_bundle(
+      new_value,
+      front_marking,
+      back_marking,
+      old_idem
+    );
   }
   
   void lock_coefficients() {

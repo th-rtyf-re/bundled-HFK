@@ -131,9 +131,10 @@ class Local_maximum {
       if (old_idem[position_]) {  // X and Y
         Idem x_idem = extend_(old_idem, X);
         Idem y_idem = extend_(old_idem, Y);
-        std::vector< int > U_weights(x_idem.size() - 1, 0);
-        new_d_module.add_coef_bundle(x_idem, y_idem, U_weights, X, Y, old_idem);
-        new_d_module.add_coef_bundle(y_idem, x_idem, U_weights, Y, X, old_idem);
+        auto alg_el = new_d_module.alg_el(x_idem, y_idem);
+        new_d_module.add_coef_bundle(alg_el, X, Y, old_idem);
+        alg_el = new_d_module.alg_el(y_idem, x_idem);
+        new_d_module.add_coef_bundle(alg_el, Y, X, old_idem);
       }
     }
   }
@@ -185,7 +186,8 @@ class Local_maximum {
         const Idem& new_source_idem = extend_(back_idem, back_marking);
         const Idem& new_target_idem = extend_(front_idem, front_marking);
         if (new_source_idem.too_far_from(new_target_idem)) { continue; }
-        new_d_module.add_coef_bundle(new_source_idem, new_target_idem, new_U_weights, back_marking, front_marking, coef, old_d_module);
+        auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
+        new_d_module.add_coef_bundle(alg_el, back_marking, front_marking, coef, old_d_module);
       }
     }
   }  // delta_2_
