@@ -1,3 +1,6 @@
+#ifndef TEST_LOCAL_MAXIMUM_H_
+#define TEST_LOCAL_MAXIMUM_H_
+
 #include <string>
 #include <utility>  // pair
 #include <vector>
@@ -218,3 +221,5 @@ class Local_maximum {
   
   const int position_;
 };
+
+#endif  // TEST_LOCAL_MAXIMUM_H_

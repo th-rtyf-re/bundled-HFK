@@ -71,7 +71,10 @@ class Positive_crossing {
     return matchings;
   }
   
-  std::vector< bool > upper_orientations(std::vector< bool > orientations, const std::vector< int >&) const {
+  std::vector< bool > upper_orientations(
+    std::vector< bool > orientations,
+    const std::vector< int >&
+  ) const {
     std::swap(orientations[position_], orientations[position_ + 1]);
     return orientations;
   }
@@ -82,7 +85,11 @@ class Positive_crossing {
   
   /* Return the LaTeX KnotDiagram2ASCII string for the knot slice.
    */
-  std::string to_string(const std::pair< int, int >& margins, const std::pair< int, int >& n_strands, std::string symbol = "+") const {
+  std::string to_string(
+    const std::pair< int, int >& margins,
+    const std::pair< int, int >& n_strands,
+    std::string symbol = "+"
+  ) const {
     return std::string(margins.first, '0')
       + std::string(position_, '.')
       + symbol
@@ -93,7 +100,10 @@ class Positive_crossing {
   
   /* Algebraic methods */
   
-  std::vector< Weights > get_weights(const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  std::vector< Weights > get_weights(
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     std::vector< Weights > weights;
     for (auto type : {N, E, S, W}) {
       weights.push_back(alexander_maslov_weights_(type, upper_algebra, lower_algebra));
@@ -101,7 +111,11 @@ class Positive_crossing {
     return weights;
   }
   
-  std::vector< std::string > get_labels(const Algebra& upper_algebra, const Algebra& lower_algebra, std::string symbols = "NESW") const {
+  std::vector< std::string > get_labels(
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra,
+    std::string symbols = "NESW"
+  ) const {
     std::vector< std::string > labels;
     for (auto type : {N, E, S, W}) {
       labels.push_back(std::string(1, symbols[type]) + "_{" + std::to_string(position_) + "}");
@@ -109,12 +123,22 @@ class Positive_crossing {
     return labels;
   }
   
-  D_module tensor_generators(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
+  D_module tensor_generators(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra&,
+    const Algebra&
+  ) const {
     delta_0_(new_d_module, old_d_module);
     return new_d_module;
   }
   
-  D_module& tensor_coefficients(D_module& new_d_module, const D_module& old_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  D_module& tensor_coefficients(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     delta_1_(new_d_module, old_d_module, upper_algebra, lower_algebra);
     delta_2_(new_d_module, old_d_module);
     delta_3_(new_d_module, old_d_module);
@@ -142,7 +166,11 @@ class Positive_crossing {
     null = 0
   };
   
-  Weights alexander_maslov_weights_(const int generator_type, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  Weights alexander_maslov_weights_(
+    const int generator_type,
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     bool left_ori = upper_algebra.orientations[position_];
     bool right_ori = upper_algebra.orientations[position_ + 1];
     int a = 0;  // double Alexander
@@ -220,7 +248,12 @@ class Positive_crossing {
     }
   }  // delta_0_and_1_
   
-  void delta_1_(D_module& new_d_module, const D_module& old_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  void delta_1_(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     for (const auto& gen_handle : old_d_module.gen_bundle_handles()) {
       const Idem& old_idem = old_d_module.idem(gen_handle);
       
@@ -323,7 +356,10 @@ class Positive_crossing {
    * I factored this out, but this means it gets called more than strictly
    * necessary.
    */
-  std::tuple< int, int, int, int > get_local_weights_(Coef_bundle coef, const D_module& old_d_module) const {
+  std::tuple< int, int, int, int > get_local_weights_(
+    Coef_bundle coef,
+    const D_module& old_d_module
+  ) const {
     const Idem& source_idem = old_d_module.source_idem(coef);
     const Idem& target_idem = old_d_module.target_idem(coef);
     int a1 = 0;  // will only take values in [-1, 1]
@@ -333,7 +369,12 @@ class Positive_crossing {
       a1 = a1 + source_idem[i] - target_idem[i];
     }
     a2 = a1 + source_idem[i] - target_idem[i];  // i = position_ + 1
-    return std::make_tuple(a1, a2, old_d_module.U_weights(coef)[position_], old_d_module.U_weights(coef)[position_ + 1]);
+    return std::make_tuple(
+      a1,
+      a2,
+      old_d_module.U_weights(coef)[position_],
+      old_d_module.U_weights(coef)[position_ + 1]
+    );
   }  // get_local_weights_
   
   /* For \delta_3
@@ -342,7 +383,12 @@ class Positive_crossing {
    * compute the mid marking I(b, Y), the front marking I(a, I(b, Y)), and the
    * product marking I(ab, Y).
    */
-  bool coef_exists_(const Coef_bundle& back_coef, const Coef_bundle& front_coef, const Gen_type front_marking, const D_module& old_d_module) const {
+  bool coef_exists_(
+    const Coef_bundle& back_coef,
+    const Coef_bundle& front_coef,
+    const Gen_type front_marking,
+    const D_module& old_d_module
+  ) const {
     if (front_marking == S) { return false; }  // front cannot be S
     
     int hash_index;
@@ -361,7 +407,8 @@ class Positive_crossing {
       u1 + v1 + (std::abs(a1) + std::abs(b1)) / 2,
       u2 + v2 + (std::abs(a2) + std::abs(b2)) / 2, front_marking);
     Gen_type product_marking = positive_look_back_[hash_index];
-    if (back_marking == product_marking) { return false; }  // check that back is not equal to product
+    // check that back is not equal to product
+    if (back_marking == product_marking) { return false; }
     
     /* If product marking is null, we either have (R_1, R_2U_2^t) for E
      * or (L_2, L_1U_1^n) for W. We exclude all other cases.
@@ -499,6 +546,8 @@ class Positive_crossing {
 };
 
 template< class D_module >
-const typename Positive_crossing< D_module >::Table Positive_crossing< D_module >::positive_look_back_ = Positive_crossing< D_module >::make_positive_look_back_();
+const typename Positive_crossing< D_module >::Table
+  Positive_crossing< D_module >::positive_look_back_ =
+    Positive_crossing< D_module >::make_positive_look_back_();
 
 #endif  // TEST_POSITIVE_CROSSING_H_

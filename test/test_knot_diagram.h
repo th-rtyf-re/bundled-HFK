@@ -1,3 +1,6 @@
+#ifndef TEST_KNOT_DIAGRAM_H_
+#define TEST_KNOT_DIAGRAM_H_
+
 #include <fstream>
 #include <iostream>
 #include <string>  // stoi
@@ -16,8 +19,14 @@ template< template< class > class ...Morse_events >
 class Knot_diagram {
  public:
   using D_module_default = Forest<>;
+  using Morse_data_container =
+    std::vector< std::pair< int, std::vector< boost::any > > >;
   
   Knot_diagram () { }
+  
+  void import_data(const Morse_data_container& morse_data) {
+    morse_data_ = morse_data;
+  }
   
   /* Import from CSV.
    * Import a Morse event list from a CSV file given by filename.
@@ -37,7 +46,11 @@ class Knot_diagram {
     }
     
     int line_number = 1;
-    for (std::string line; std::getline(morse_event_csv, line, '\n'); ++line_number) {
+    for (
+      std::string line;
+      std::getline(morse_event_csv, line, '\n');
+      ++line_number
+    ) {
       if (line[0] == '#') { continue; }  // comment line
       else if (line.find_first_of("0123456789") != 0) {  // syntax error
         std::cout << "[kd] Line "
@@ -51,11 +64,11 @@ class Knot_diagram {
       auto i = line.find(',');
       int event = std::stoi(line.substr(0, i));
       int position = std::stoi(line.substr(i + 1));
-      morse_event_data_.push_back({event, {position}});
+      morse_data_.push_back({event, {position}});
     }
     morse_event_csv.close();
     
-    morse_events_default_ = Detail_<>::get_morse_events(morse_event_data_);
+    morse_events_default_ = Detail_<>::get_morse_events(morse_data_);
   }  // import_csv
   
   int max_n_strands() const {
@@ -81,7 +94,7 @@ class Knot_diagram {
     std::ofstream suffix_forest("differential_suffix_forest.tex");
 #endif  // DRAW
     
-    const auto da_bimodules = Detail_< D_module >::get_da_bimodules(morse_event_data_);
+    const auto da_bimodules = Detail_< D_module >::get_da_bimodules(morse_data_);
     
     //std::ofstream write_file("differential_suffix_forest.tex");  // debug LaTeX file
     D_module d_module;
@@ -129,10 +142,12 @@ class Knot_diagram {
     using Morse_event = Morse_event< D_module >;
     using DA_bimodule = DA_bimodule< Morse_event, D_module >;
     
-    static std::vector< DA_bimodule > get_da_bimodules(const std::vector< std::pair< int, std::vector< boost::any > > >& morse_event_data) {
+    static std::vector< DA_bimodule > get_da_bimodules(
+      const Morse_data_container& morse_data
+    ) {
       std::vector< DA_bimodule > da_bimodules;
       
-      const auto morse_events = get_morse_events(morse_event_data);
+      const auto morse_events = get_morse_events(morse_data);
       const auto algebras = get_bordered_algebras(morse_events);
       
       for (int i = 0; i != morse_events.size(); ++i) {
@@ -144,17 +159,21 @@ class Knot_diagram {
       return da_bimodules;
     }
     
-    static std::vector< Morse_event > get_morse_events(const std::vector< std::pair< int, std::vector< boost::any > > >& morse_event_data) {
+    static std::vector< Morse_event > get_morse_events(
+      const Morse_data_container& morse_data
+    ) {
       std::vector< Morse_event > morse_events;
       
-      for (const auto value_pair : morse_event_data) {
+      for (const auto value_pair : morse_data) {
         morse_events.push_back(instance(value_pair.first, value_pair.second));
       }
       
       return morse_events;
     }
     
-    static std::vector< Bordered_algebra > get_bordered_algebras(const std::vector< Morse_event >& morse_events) {
+    static std::vector< Bordered_algebra > get_bordered_algebras(
+      const std::vector< Morse_event >& morse_events
+    ) {
       std::vector< Bordered_algebra > algebras(morse_events.size() + 1);
       
       // Place algebras
@@ -193,7 +212,10 @@ class Knot_diagram {
       int,
       template< class > class Morse_events_head,
       template< class > class ...Morse_events_tail >
-    static Morse_event instance_aux_(const int i, const std::vector< boost::any >& args) {
+    static Morse_event instance_aux_(
+      const int i,
+      const std::vector< boost::any >& args
+    ) {
       if (i == 0) {
         return Morse_event(Morse_events_head< D_module >(args));
       }
@@ -219,7 +241,10 @@ class Knot_diagram {
     
     write_file << "\\KnotDiagram{" << std::endl;
     for (int i = 0; i < morse_events_default_.size(); ++i) {
-      write_file << morse_events_default_[i].to_string(margins[i], {algebras[i].n_strands, algebras[i + 1].n_strands}) << std::endl;
+      write_file << morse_events_default_[i].to_string(
+        margins[i],
+        {algebras[i].n_strands, algebras[i + 1].n_strands}
+      ) << std::endl;
 	}
     write_file << "}" << std::flush;
   }
@@ -238,6 +263,8 @@ class Knot_diagram {
     return margins;
   }
   
-  std::vector< std::pair< int, std::vector< boost::any > > > morse_event_data_;
+  Morse_data_container morse_data_;
   std::vector< Morse_event< D_module_default > > morse_events_default_;
 };
+
+#endif  // TEST_KNOT_DIAGRAM_H_

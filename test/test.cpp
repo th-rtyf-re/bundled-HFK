@@ -34,20 +34,3 @@ int main() {
   
   return 0;
 }
-
-
-// struct B {
-//   template<class T> void f() { }
-// };
-// 
-// template< class B >
-// struct D : B {
-//   using B::f;
-//   void g() { f<int>(); }
-// };
-// 
-// int main() {
-//   D< B > d;
-//   d.g();
-//   return 0;
-// }

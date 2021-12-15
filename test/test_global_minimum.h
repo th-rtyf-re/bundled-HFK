@@ -1,3 +1,6 @@
+#ifndef TEST_GLOBAL_MINIMUM_H_
+#define TEST_GLOBAL_MINIMUM_H_
+
 #include <string>
 #include <utility>  // pair
 #include <vector>
@@ -66,3 +69,5 @@ class Global_minimum {
   }
 #endif  // VERBOSE
 };
+
+#endif  // TEST_GLOBAL_MINIMUM_H_

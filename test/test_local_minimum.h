@@ -1,3 +1,6 @@
+#ifndef TEST_LOCAL_MINIMUM_H_
+#define TEST_LOCAL_MINIMUM_H_
+
 #include <string>
 #include <utility>  // pair
 #include <vector>
@@ -45,7 +48,10 @@ class Local_minimum {
     return matchings;
   }
   
-  std::vector< bool > upper_orientations(std::vector< bool > orientations, const std::vector< int >& upper_matchings) const {
+  std::vector< bool > upper_orientations(
+    std::vector< bool > orientations,
+    const std::vector< int >& upper_matchings
+  ) const {
     int left_match = upper_matchings[position_];
     int right_match = upper_matchings[position_ + 1];
     if (left_match >= position_ + 2) {
@@ -66,7 +72,10 @@ class Local_minimum {
   
   /* Return the LaTeX KnotDiagram2ASCII string for the knot slice.
    */
-  std::string to_string(const std::pair< int, int >& margins, const std::pair< int, int >& n_strands) const {
+  std::string to_string(
+    const std::pair< int, int >& margins,
+    const std::pair< int, int >& n_strands
+  ) const {
     return std::string(margins.first - 1, '0')
       + std::string(position_, 'l')
       + "u"
@@ -80,7 +89,10 @@ class Local_minimum {
     return std::vector< Weights >(2, {0, 0});
   }
   
-  std::vector< std::string > get_labels(const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  std::vector< std::string > get_labels(
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     std::vector< std::string > labels(2);
     std::string symbols;
     if (lower_algebra.orientations[position_]) {  // clock
@@ -99,12 +111,22 @@ class Local_minimum {
     return labels;
   }
   
-  D_module tensor_generators(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
+  D_module tensor_generators(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra&,
+    const Algebra&
+  ) const {
     delta_0_(new_d_module, old_d_module);
     return new_d_module;
   }
   
-  D_module& tensor_coefficients(D_module& new_d_module, const D_module& old_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  D_module& tensor_coefficients(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     delta_2_(new_d_module, old_d_module, upper_algebra, lower_algebra);
     delta_geq_4_(new_d_module, old_d_module, upper_algebra, lower_algebra);
     return new_d_module;
@@ -141,10 +163,18 @@ class Local_minimum {
    * 
    * Assume that position_ is 0.
    */
-  void delta_2_(D_module& new_d_module, const D_module& old_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  void delta_2_(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     for (const auto& coef : old_d_module.coef_bundles()) {
-      if (old_d_module.U_weights(coef)[0] == 0 and extendable_(old_d_module.source_idem(coef), YR2)
-          and extendable_(old_d_module.target_idem(coef), YR2)) {
+      if (
+        old_d_module.U_weights(coef)[0] == 0
+        and extendable_(old_d_module.source_idem(coef), YR2)
+        and extendable_(old_d_module.target_idem(coef), YR2)
+      ) {
         /* Add curved weight*/
         std::vector< int > new_U_weights = old_d_module.U_weights(coef);
         new_U_weights[upper_algebra.matchings[0]] += new_U_weights[1];
@@ -157,7 +187,12 @@ class Local_minimum {
   /* \delta_{\geq 4}
    * Assume position_ is 0.
    */
-  void delta_geq_4_(D_module& new_d_module, const D_module& old_d_module, const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  void delta_geq_4_(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     /* Construct lists of coefficients
      * As is the case everywhere else, algebra indexes start from 0, not 1
      */
@@ -183,9 +218,12 @@ class Local_minimum {
     }
     
     /* Initialize building blocks of sequences */
-    std::vector< Coef_bundle > sequences_back = concatenate_groups_(old_d_module, L_1, U_0);
-    const std::vector< Coef_bundle > sequences_mid = concatenate_groups_(old_d_module, U_1, U_0);
-    std::vector< Coef_bundle > sequences = concatenate_groups_(old_d_module, sequences_back, R_1);
+    std::vector< Coef_bundle > sequences_back =
+      concatenate_groups_(old_d_module, L_1, U_0);
+    const std::vector< Coef_bundle > sequences_mid =
+      concatenate_groups_(old_d_module, U_1, U_0);
+    std::vector< Coef_bundle > sequences =
+      concatenate_groups_(old_d_module, sequences_back, R_1);
     
     /* This loop ends for mathematical reasons. If the input is not a knot,
      * there is no guarantee that this ends.
@@ -207,11 +245,21 @@ class Local_minimum {
    * TO DO: sort both sets by... suffix of target (resp. source)? I don't think
    * this works with agglomerated coefs, though
    */
-  std::vector< Coef_bundle > concatenate_groups_(const D_module& old_d_module, const std::vector< Coef_bundle >& back_group, const std::vector< Coef_bundle >& front_group) const {
+  std::vector< Coef_bundle > concatenate_groups_(
+    const D_module& old_d_module,
+    const std::vector< Coef_bundle >& back_group,
+    const std::vector< Coef_bundle >& front_group
+  ) const {
     std::vector< Coef_bundle > result;
     for (const Coef_bundle& back_coef : back_group) {
       for (const Coef_bundle& front_coef : front_group) {
-        if (old_d_module.source_idem(back_coef).too_far_from(old_d_module.target_idem(front_coef))) { continue; }
+        if (
+          old_d_module.source_idem(back_coef).too_far_from(
+            old_d_module.target_idem(front_coef)
+          )
+        ) {
+          continue;
+        }
         if (!old_d_module.compatible(back_coef, front_coef)) { continue; }
         Coef_bundle concat_coef = old_d_module.concatenate(back_coef, front_coef);
         result.push_back(concat_coef);
@@ -241,7 +289,12 @@ class Local_minimum {
    * This auxiliary function does two things, which can't really be separated:
    * shorten idempotents and U weights, and then add composite coefficient.
    */
-  void shorten_and_finish_(const D_module& old_d_module, D_module& new_d_module, std::vector< int >& new_U_weights, const Coef_bundle& old_coef) const {
+  void shorten_and_finish_(
+    const D_module& old_d_module,
+    D_module& new_d_module,
+    std::vector< int >& new_U_weights,
+    const Coef_bundle& old_coef
+  ) const {
     /* Shorten idempotents and U weight vector */
     Idem new_source_idem = old_d_module.source_idem(old_coef);
     Idem new_target_idem = old_d_module.target_idem(old_coef);
@@ -271,3 +324,5 @@ class Local_minimum {
   
   int position_;  // = 0
 };
+
+#endif  // TEST_LOCAL_MINIMUM_H_

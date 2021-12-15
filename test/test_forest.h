@@ -20,17 +20,22 @@
 
 /* Differential suffix forest.
  * 
- * Arcs are stored in a boost multi-index container, indexed by source and
- * target nodes. Thus, we can iterate over arcs in order of source or target.
- * This is useful for finding neighbors without too much overhead (maybe).
+ * 
+ * Mathematically speaking, this is a D-module up to homotopy equivalence.
+ * 
+ * This class also contains the main interface with DA-bimodules and Morse
+ * events.
  */
 template<
   class Forest_options = Forest_options_default_short,
   template< class > class Node_container_template = Node_container,
-  template< class, template< class > class > class Arc_container_template = Arc_container
+  template<
+    class,
+    template< class > class
+  > class Arc_container_template = Arc_container
 >
 class Forest :
-  private Arc_container_template< Forest_options, Node_container_template >
+  public Arc_container_template< Forest_options, Node_container_template >
 {
  public:
   using Idem = typename Forest_options::Idem;
@@ -43,7 +48,10 @@ class Forest :
   using typename Node_container::Root_handle;
   using typename Node_container::Root_handle_container;
   
-  using Arc_container = Arc_container_template< Forest_options, Node_container_template >;
+  using Arc_container = Arc_container_template<
+    Forest_options,
+    Node_container_template
+  >;
   using Arc = typename Arc_container::Arc;
   using Arc_view = typename Arc_container::Arc_view;
   using Arc_iterator = typename Arc_container::Arc_iterator;
@@ -77,48 +85,13 @@ class Forest :
   using Arc_container::concatenate;
   
  private:
-  // Modifiers
-  using Node_container::clear_nodes;
-  using Node_container::push_back_root;
-  using Node_container::push_back_subtree;
-  
   // Relative distances
-  using Node_container::to_root;
   using Node_container::to_parent;
-  using Node_container::to_next;
   
   // Absolute node positions
   using Node_container::descendants_begin;
   using Node_container::descendants_end;
   using Node_container::descendants_size;
-  
-  // Bool functions
-  using Node_container::is_root;
-  using Node_container::has_children;
-  
-  // Functions for pruning
-  using Node_container::node_offsets;
-  using Node_container::prune_nodes;
-  using Node_container::erase_subtree_nodes;
-  
-  // Arc iterators
-  using Arc_container::arcs_begin;
-  using Arc_container::arcs_end;
-  
-  // Modifiers
-  using Arc_container::clear_arcs;
-  using Arc_container::insert_arcs;
-  using Arc_container::insert_arc;
-  
-  using Arc_container::resolve_overlaps_after;
-  using Arc_container::resolve_overlaps_before;
-  
-  // CWG109 says that being unable to do this is not a problem :(
-  // using Arc_container::erase_arcs_above_node;
-  // using Arc_container::raise_arcs_below_node;
-  
-  using Arc_container::update_arc_endpoints;
-  
   
  public:
   const Root_handle_container& gen_bundle_handles() const {
@@ -130,8 +103,8 @@ class Forest :
   }
   
   void set_as_trivial() {
-    clear_nodes();
-    clear_arcs();
+    this->clear_nodes();
+    this->clear_arcs();
     add_gen_bundle(Idem("0"));
     lock_generators();
     lock_coefficients();
@@ -165,15 +138,15 @@ class Forest :
     const std::vector< Weights >& first_layer_weights,
     const std::vector< std::string >& first_layer_labels
   ) {
-    clear_nodes();
+    this->clear_nodes();
     for (auto& map_value : declared_subtrees_) {
       const Idem& new_idem = map_value.first;
-      int new_root = push_back_root(new_idem);
+      int new_root = this->push_back_root(new_idem);
       
       for (auto& vec_value : map_value.second) {
         Gen_type& new_type = vec_value.first;
         int old_root = vec_value.second;
-        int new_child = push_back_subtree(
+        int new_child = this->push_back_subtree(
           new_root,
           first_layer_weights[new_type],
           first_layer_labels[new_type],
@@ -187,10 +160,10 @@ class Forest :
   
   /* Lock subtrees, but only the roots */
   void lock_generators() {
-    clear_nodes();
+    this->clear_nodes();
     for (auto& map_value : declared_subtrees_) {
       const Idem& new_idem = map_value.first;
-      push_back_root(new_idem);
+      this->push_back_root(new_idem);
     }
   }
   
@@ -242,9 +215,12 @@ class Forest :
   }
   
   void lock_coefficients() {
-    insert_arcs(declared_arcs_.begin(), declared_arcs_.end());
-    for (auto lower_arc_it = arcs_begin(); lower_arc_it != arcs_end(); ) {
-      lower_arc_it = resolve_overlaps_after(lower_arc_it);
+    this->insert_arcs(declared_arcs_.begin(), declared_arcs_.end());
+    for (
+      auto lower_arc_it = this->arcs_begin();
+      lower_arc_it != this->arcs_end();
+    ) {
+      lower_arc_it = this->resolve_overlaps_after(lower_arc_it);
     }
   }
   
@@ -255,7 +231,7 @@ class Forest :
     bool reduction = true;
     while (reduction) {
       reduction = false;
-      for (auto arc_it = arcs_begin(); arc_it != arcs_end(); ) {
+      for (auto arc_it = this->arcs_begin(); arc_it != this->arcs_end(); ) {
         if (arc_it->value.is_invertible()) {
           reduction = true;
           arc_it = contract_(arc_it);
@@ -265,9 +241,9 @@ class Forest :
         }
       }
     }
-    const auto offsets = node_offsets();
-    prune_nodes(offsets);
-    update_arc_endpoints(offsets);
+    const auto offsets = this->node_offsets();
+    this->prune_nodes(offsets);
+    this->update_arc_endpoints(offsets);
   }
   
  private:
@@ -282,19 +258,19 @@ class Forest :
     const Arc& reverse_arc = *reverse_arc_it;
     resolve_critical_(reverse_arc);
     
-    for (const Arc& back_arc : others_to_target(reverse_arc)) {
-      for (const Arc& front_arc : others_from_source(reverse_arc)) {
+    for (const Arc& back_arc : this->others_to_target(reverse_arc)) {
+      for (const Arc& front_arc : this->others_from_source(reverse_arc)) {
         std::cout << "[f] Making zig-zag arc from "
-                  << back_arc << " "
-                  << reverse_arc << " "
-                  << front_arc << std::endl;
+          << back_arc << " "
+          << reverse_arc << " "
+          << front_arc << std::endl;
         zigzag_arcs = add_zigzag_(zigzag_arcs, back_arc, reverse_arc, front_arc);
       }
     }
     
     for (const Arc& zigzag_arc : zigzag_arcs) {
       std::cout << "[f] Adding zig-zag arc " << zigzag_arc << std::endl;
-      insert_arc(zigzag_arc);
+      this->insert_arc(zigzag_arc);
     }
     
     // get source and target before the iterator is invalidated
@@ -352,13 +328,17 @@ class Forest :
     // At this point, the back and front arcs are at least as high as the
     // reverse arc.
     
-    if (back_diff <= front_diff
-        and front_diff < back_diff + descendants_size(back_arc.target)) {
+    if (
+      back_diff <= front_diff
+      and front_diff < back_diff + this->descendants_size(back_arc.target)
+    ) {
       source += front_diff - back_diff;
       arc_stream.emplace_back(source, target, back_arc.value * front_arc.value);
     }
-    else if (front_diff <= back_diff
-             and back_diff < front_diff + descendants_size(front_arc.source)) {
+    else if (
+      front_diff <= back_diff
+      and back_diff < front_diff + this->descendants_size(front_arc.source)
+    ) {
       target += back_diff - front_diff;
       arc_stream.emplace_back(source, target, back_arc.value * front_arc.value);
     }
@@ -369,12 +349,15 @@ class Forest :
    * has one child.
    */
   int greatest_single_child_ancestor_(int node) const {
-    int d_parent = to_parent(node);
+    int d_parent = this->to_parent(node);
     int parent = node - d_parent;
     // Check that node is the first and last child of parent
-    while (descendants_size(parent) == descendants_size(node) + to_next(parent)) {
+    while (
+      this->descendants_size(parent)
+      == this->descendants_size(node) + this->to_next(parent)
+    ) {
       node = parent;
-      d_parent = to_parent(node);
+      d_parent = this->to_parent(node);
       parent = node - 1;
     }
     return node;
@@ -384,7 +367,7 @@ class Forest :
    * from above the given node.
    */
   Arc_iterator erase_subtree_(int node) {
-    erase_subtree_nodes(node);
+    this->erase_subtree_nodes(node);
     this->template erase_arcs_above_node< Target >(node);
     return this->template erase_arcs_above_node< Source >(node);
   }
