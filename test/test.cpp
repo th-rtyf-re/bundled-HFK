@@ -15,6 +15,8 @@
 
 #include "Math_tools/Poincare_polynomial.h"
 
+//#include "test_knot_interface.h"
+
 int main() {
   using D_module_short = Forest<>;
   using D_module_long = Forest< Forest_options_default_long >;

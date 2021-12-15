@@ -6,9 +6,10 @@
  * easier for Knot diagram to reason with DA bimodules.
  * These are constructed when we call the knot Floer homology function.
  */
-template< class Morse_event, class D_module >
+template< class Morse_event >
 class DA_bimodule {
  public:
+  using D_module = typename Morse_event::D_module;
   using Algebra = typename D_module::Bordered_algebra;
   
   DA_bimodule(

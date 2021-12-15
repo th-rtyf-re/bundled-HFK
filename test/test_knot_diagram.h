@@ -7,20 +7,23 @@
 #include <utility>  // pair
 #include <vector>
 
-#include <boost/any.hpp>
+//#include <boost/any.hpp>
 
 #include "test_da_bimodule.h"
 #include "test_forest.h"
 #include "test_morse_event.h"
+#include "test_morse_event_options.h"
 
 /* None of this is optimized, because its cost is minimal in the big picture.
  */
-template< template< class > class ...Morse_events >
+template< template< class, class > class ...Morse_events >
 class Knot_diagram {
  public:
   using D_module_default = Forest<>;
+  using Morse_event_options = Morse_event_options_int;
+  using Parameter_type = typename Morse_event_options::Parameter_type;
   using Morse_data_container =
-    std::vector< std::pair< int, std::vector< boost::any > > >;
+    std::vector< std::pair< int, std::vector< Parameter_type > > >;
   
   Knot_diagram () { }
   
@@ -77,7 +80,8 @@ class Knot_diagram {
     
     for (const auto morse_event : morse_events_default_) {
       // hack to get lower n strands via the lower matchings vector
-      n_strands = morse_event.lower_matchings(std::vector< int >(n_strands, 0)).size();
+      n_strands =
+        morse_event.lower_matchings(std::vector< int >(n_strands, 0)).size();
       if (n_strands > max_n_strands) {
         max_n_strands = n_strands;
       }
@@ -96,7 +100,6 @@ class Knot_diagram {
     
     const auto da_bimodules = Detail_< D_module >::get_da_bimodules(morse_data_);
     
-    //std::ofstream write_file("differential_suffix_forest.tex");  // debug LaTeX file
     D_module d_module;
     d_module.set_as_trivial();
     
@@ -139,8 +142,8 @@ class Knot_diagram {
   template< class D_module = D_module_default >
   struct Detail_ {
     using Bordered_algebra = typename D_module::Bordered_algebra;
-    using Morse_event = Morse_event< D_module >;
-    using DA_bimodule = DA_bimodule< Morse_event, D_module >;
+    using Morse_event = Morse_event< D_module, Morse_event_options >;
+    using DA_bimodule = DA_bimodule< Morse_event >;
     
     static std::vector< DA_bimodule > get_da_bimodules(
       const Morse_data_container& morse_data
@@ -198,7 +201,7 @@ class Knot_diagram {
     /* Return an instance of the i^th Morse event, as listed in the template,
      * constructed using arguments.
      */
-    static Morse_event instance(const int i, const std::vector< boost::any >& args) {
+    static Morse_event instance(const int i, const std::vector< Parameter_type >& args) {
       return instance_aux_< 0, Morse_events... >(i, args);
     }
     
@@ -210,14 +213,14 @@ class Knot_diagram {
      */
     template<
       int,
-      template< class > class Morse_events_head,
-      template< class > class ...Morse_events_tail >
+      template< class, class > class Morse_events_head,
+      template< class, class > class ...Morse_events_tail >
     static Morse_event instance_aux_(
       const int i,
-      const std::vector< boost::any >& args
+      const std::vector< Parameter_type >& args
     ) {
       if (i == 0) {
-        return Morse_event(Morse_events_head< D_module >(args));
+        return Morse_event(Morse_events_head< D_module, Morse_event_options >(args));
       }
       else {
         return instance_aux_< 0, Morse_events_tail... >(i - 1, args);
@@ -226,7 +229,7 @@ class Knot_diagram {
     
     // Initialization: 
     template< int >
-    static Morse_event instance_aux_(const int, const std::vector< boost::any >&) {
+    static Morse_event instance_aux_(const int, const std::vector< Parameter_type >&) {
       return Morse_event();
     }
   };
@@ -264,7 +267,7 @@ class Knot_diagram {
   }
   
   Morse_data_container morse_data_;
-  std::vector< Morse_event< D_module_default > > morse_events_default_;
+  std::vector< Morse_event< D_module_default, Morse_event_options > > morse_events_default_;
 };
 
 #endif  // TEST_KNOT_DIAGRAM_H_

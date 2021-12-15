@@ -15,7 +15,7 @@
  * 
  * Adapted from ComputeHFKv2/Max.cpp
  */
-template< class D_module >
+template< class D_module, class Morse_event_options >
 class Local_maximum {
  public:
   using Idem = typename D_module::Idem;
@@ -24,8 +24,8 @@ class Local_maximum {
   using Coef_bundle = typename D_module::Coef_bundle;
   using Weights = typename D_module::Weights;  // currently, pair of int
   
-  Local_maximum(const std::vector< boost::any >& args) :
-    position_(args.empty() ? 0 : boost::any_cast< int >(args[0]))
+  Local_maximum(const std::vector< typename Morse_event_options::Parameter_type >& args) :
+    position_(args.empty() ? 0 : Morse_event_options::template parameter_cast< int >(args[0]))
   { }
   
   
@@ -41,7 +41,10 @@ class Local_maximum {
     return matchings;
   }
   
-  std::vector< bool > upper_orientations(std::vector< bool > orientations, const std::vector< int >&) const {
+  std::vector< bool > upper_orientations(
+    std::vector< bool > orientations,
+    const std::vector< int >&
+  ) const {
     orientations.erase(orientations.begin() + position_,
     orientations.begin() + position_ + 2);
     return orientations;
@@ -53,7 +56,10 @@ class Local_maximum {
   
   /* Return the LaTeX KnotDiagram2ASCII string for the knot slice.
    */
-  std::string to_string(const std::pair< int, int >& margins, const std::pair< int, int >& n_strands) const {
+  std::string to_string(
+    const std::pair< int, int >& margins,
+    const std::pair< int, int >& n_strands
+  ) const {
     return std::string(margins.first, '0')
       + std::string(position_, 'r')
       + "a"
@@ -67,7 +73,10 @@ class Local_maximum {
     return std::vector< Weights >(3, {0, 0});
   }
   
-  std::vector< std::string > get_labels(const Algebra& upper_algebra, const Algebra& lower_algebra) const {
+  std::vector< std::string > get_labels(
+    const Algebra& upper_algebra,
+    const Algebra& lower_algebra
+  ) const {
     std::vector< std::string > labels(3);
     std::string symbols;
     if (lower_algebra.orientations[position_]) {  // clock
@@ -84,19 +93,32 @@ class Local_maximum {
     return labels;
   }
   
-  D_module tensor_generators(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
+  D_module tensor_generators(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra&,
+    const Algebra&
+  ) const {
     delta_0_(new_d_module, old_d_module);
     return new_d_module;
   }
   
-  D_module& tensor_coefficients(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
+  D_module& tensor_coefficients(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra&,
+    const Algebra&
+  ) const {
     delta_1_(new_d_module, old_d_module);
     delta_2_(new_d_module, old_d_module);
     return new_d_module;
   }
   
 #ifdef VERBOSE
-  friend std::ostream& operator<<(std::ostream& os, const Local_maximum& morse_event) {
+  friend std::ostream& operator<<(
+    std::ostream& os,
+    const Local_maximum& morse_event
+  ) {
     os << "local maximum at position " << morse_event.position_;
     return os;
   }
@@ -153,7 +175,8 @@ class Local_maximum {
       std::tie(a1, a2) = get_local_weights_(back_idem, front_idem);
       new_U_weights.insert(new_U_weights.begin() + position_, {0, 0});
       
-      std::vector< std::pair< Gen_type, Gen_type > > to_compose;  // of length 1 or 2
+      // to_compose is of length 1 or 2
+      std::vector< std::pair< Gen_type, Gen_type > > to_compose;
       
       if (a1 == 1 and a2 == 1) {  // R_2R_1
         to_compose.emplace_back(Y, X);
@@ -189,8 +212,15 @@ class Local_maximum {
         const Idem& new_source_idem = extend_(back_idem, back_marking);
         const Idem& new_target_idem = extend_(front_idem, front_marking);
         if (new_source_idem.too_far_from(new_target_idem)) { continue; }
-        auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
-        new_d_module.add_coef_bundle(alg_el, back_marking, front_marking, coef, old_d_module);
+        auto alg_el =
+          new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
+        new_d_module.add_coef_bundle(
+          alg_el,
+          back_marking,
+          front_marking,
+          coef,
+          old_d_module
+        );
       }
     }
   }  // delta_2_
@@ -198,7 +228,10 @@ class Local_maximum {
   /* Get LR weights at position_ - 1 and position_. This corresponds to the
    * local LR weights of the upper algebra.
    */
-  std::tuple< int, int > get_local_weights_(const Idem& source_idem, const Idem& target_idem) const {
+  std::tuple< int, int > get_local_weights_(
+    const Idem& source_idem,
+    const Idem& target_idem
+  ) const {
     int a1 = 0;  // will only take values in [-1, 1]
     int a2 = 0;  // will only take values in [-1, 1]
     int i = 0;

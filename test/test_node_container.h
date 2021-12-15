@@ -437,13 +437,14 @@ class Node_container {
   }
   
  private:
-  using Grid_point_ = std::pair< int, float >;  // index of node and x coordinate
+  using Grid_point_ = std::pair< int, float >;  // index of node, x coordinate
   using Grid_layer_ = std::vector< Grid_point_ >;  // left to right?
   using Grid_ = std::vector< Grid_layer_ >;  // lowest to highest
   
-  static constexpr float min_x_sep_ = 1.;  // minimal horizontal distance between nodes
-  static constexpr float y_sep_ = .8;  // vertical distance between nodes
-  //static constexpr float poly_sep_ = .3;  // vertical distance between polynomial and leaf
+  // minimal horizontal distance between nodes
+  static constexpr float min_x_sep_ = 1.;
+  // vertical distance between nodes
+  static constexpr float y_sep_ = .8;
   
   void add_to_grid_(Grid_& grid, int layer, int node) const {
     float x;
@@ -470,7 +471,8 @@ class Node_container {
            child += descendants_size(child)) {
         add_to_grid_(grid, layer + 1, child);
       }
-      x = (grid[layer + 1][first_child].second + grid[layer + 1].back().second) / 2.;
+      x = (grid[layer + 1][first_child].second + grid[layer + 1].back().second)
+        / 2.;
       grid[layer].push_back(Grid_point_(node, x));
     }  // with children
   }

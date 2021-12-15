@@ -12,7 +12,8 @@ class Reverse_D_module {
   using Alg_el = typename D_module::Alg_el;
   using Weights = typename D_module::Weights;
   
-  using Gen_bundle_handle_container = typename D_module::Gen_bundle_handle_container;
+  using Gen_bundle_handle_container =
+    typename D_module::Gen_bundle_handle_container;
   using Gen_bundle_handle = typename D_module::Gen_bundle_handle;
   using Coef_bundle = typename D_module::Coef_bundle;
   using Coef_bundle_container = typename D_module::Coef_bundle_container;
@@ -83,7 +84,11 @@ class Reverse_D_module {
   /* Coef_bundle creation */
   
   template< class ...Args >
-  Alg_el alg_el(const Idem source_idem, const Idem target_idem, Args&&... args) const {
+  Alg_el alg_el(
+    const Idem source_idem,
+    const Idem target_idem,
+    Args&&... args
+  ) const {
     return Alg_el(target_idem, source_idem, args...);
   }
   
@@ -123,29 +128,39 @@ class Reverse_D_module {
   
   /* Views on coefs */
   
-  std::vector< Coef_bundle_reference > others_to_source(const Coef_bundle& coef) const {
+  std::vector< Coef_bundle_reference >
+  others_to_source(const Coef_bundle& coef) const {
     return d_module_.others_from_target(coef);
   }
   
-  std::vector< Coef_bundle_reference > others_from_target(const Coef_bundle& coef) const {
+  std::vector< Coef_bundle_reference >
+  others_from_target(const Coef_bundle& coef) const {
     return d_module_.others_to_source(coef);
   }
   
-  std::vector< Coef_bundle_reference > others_from_source(const Coef_bundle& coef) const {
+  std::vector< Coef_bundle_reference >
+  others_from_source(const Coef_bundle& coef) const {
     return others_to_target(coef);
   }
   
-  std::vector< Coef_bundle_reference > others_to_target(const Coef_bundle& coef) const {
+  std::vector< Coef_bundle_reference >
+  others_to_target(const Coef_bundle& coef) const {
     return others_from_source(coef);
   }
   
   /* Operations on coefs */
   
-  bool compatible(const Coef_bundle& back_coef, const Coef_bundle& front_coef) const {
+  bool compatible(
+    const Coef_bundle& back_coef,
+    const Coef_bundle& front_coef
+  ) const {
     return d_module_.compatible(front_coef, back_coef);
   }
   
-  Coef_bundle concatenate(const Coef_bundle& back_coef, const Coef_bundle& front_coef) const {
+  Coef_bundle concatenate(
+    const Coef_bundle& back_coef,
+    const Coef_bundle& front_coef
+  ) const {
     return d_module_.concatenate(front_coef, back_coef);
   }
   
@@ -160,7 +175,10 @@ class Reverse_D_module {
   
   /* I/O interface */
   
-  friend std::ostream& operator<<(std::ostream& os, const Reverse_D_module& reverse_view_) {
+  friend std::ostream& operator<<(
+    std::ostream& os,
+    const Reverse_D_module& reverse_view_
+  ) {
     return os << reverse_view_.d_module_;
   }
 

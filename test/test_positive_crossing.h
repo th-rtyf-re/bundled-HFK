@@ -48,7 +48,7 @@ class Two_bit_set {
  * 
  * Adapted from ComputeHFK2/Crossing.cpp.
  */
-template< class D_module >
+template< class D_module, class Morse_event_options >
 class Positive_crossing {
  public:
   using Idem = typename D_module::Idem;
@@ -59,15 +59,18 @@ class Positive_crossing {
   
   using Table = Two_bit_set< 128 >;
   
-  Positive_crossing(const std::vector< boost::any >& args) :
-    position_(args.empty() ? 0 : boost::any_cast< int >(args[0]))
+  Positive_crossing(const std::vector< typename Morse_event_options::Parameter_type >& args) :
+    position_(args.empty() ? 0 : Morse_event_options::template parameter_cast< int >(args[0]))
   { }
   
   /* Topological methods */
   
   std::vector< int > lower_matchings(std::vector< int > matchings) const {
     std::swap(matchings[position_], matchings[position_ + 1]);
-    std::swap(matchings[matchings[position_]], matchings[matchings[position_ + 1]]);
+    std::swap(
+      matchings[matchings[position_]],
+      matchings[matchings[position_ + 1]]
+    );
     return matchings;
   }
   
@@ -106,7 +109,9 @@ class Positive_crossing {
   ) const {
     std::vector< Weights > weights;
     for (auto type : {N, E, S, W}) {
-      weights.push_back(alexander_maslov_weights_(type, upper_algebra, lower_algebra));
+      weights.push_back(
+        alexander_maslov_weights_(type, upper_algebra, lower_algebra)
+      );
     }
     return weights;
   }
@@ -118,7 +123,9 @@ class Positive_crossing {
   ) const {
     std::vector< std::string > labels;
     for (auto type : {N, E, S, W}) {
-      labels.push_back(std::string(1, symbols[type]) + "_{" + std::to_string(position_) + "}");
+      labels.push_back(
+        std::string(1, symbols[type]) + "_{" + std::to_string(position_) + "}"
+      );
     }
     return labels;
   }
@@ -146,10 +153,13 @@ class Positive_crossing {
   }
   
 #ifdef VERBOSE
-  template< class Other_D_module >
+  template< class, class >
   friend class Negative_crossing;
   
-  friend std::ostream& operator<<(std::ostream& os, const Positive_crossing& morse_event) {
+  friend std::ostream& operator<<(
+    std::ostream& os,
+    const Positive_crossing& morse_event
+  ) {
     os << "positive crossing at position " << morse_event.position_;
     return os;
   }
@@ -239,7 +249,9 @@ class Positive_crossing {
         new_d_module.add_gen_bundle(old_idem, S, gen_handle);
         
         for (int we : {0, 1}) {  // we = 0 is W, we = 1 is E
-          if (!old_idem[position_ + 2 * we]) { continue; }  // can't add generator
+          if (!old_idem[position_ + 2 * we]) {  // can't add generator
+            continue;
+          }
           Gen_type we_marking = we ? E : W;
           Idem we_idem = extend_(old_idem, we_marking);
           new_d_module.add_gen_bundle(we_idem, we_marking, gen_handle);
@@ -286,13 +298,22 @@ class Positive_crossing {
       int pre_hash_index = pre_hash_index_(a1, a2, u1, u2);
       
       for (const Gen_type front_marking : {N, W, S, E}) {
-        if (!extendable_(old_d_module.target_idem(coef), front_marking)) { continue; }
-        const Gen_type back_marking = positive_look_back_[pre_hash_index + front_marking];
-        if (!extendable_(old_d_module.source_idem(coef), back_marking)) { continue; }
+        if (!extendable_(old_d_module.target_idem(coef), front_marking)) {
+          continue;
+        }
+        const Gen_type back_marking =
+          positive_look_back_[pre_hash_index + front_marking];
+        if (!extendable_(old_d_module.source_idem(coef), back_marking)) {
+          continue;
+        }
         
-        const Idem new_source_idem = extend_(old_d_module.source_idem(coef), back_marking);
-        const Idem new_target_idem = extend_(old_d_module.target_idem(coef), front_marking);
-        if (new_source_idem.too_far_from(new_target_idem)) { continue; }  // incompatible idems
+        const Idem new_source_idem =
+          extend_(old_d_module.source_idem(coef), back_marking);
+        const Idem new_target_idem =
+          extend_(old_d_module.target_idem(coef), front_marking);
+        if (new_source_idem.too_far_from(new_target_idem)) {
+          continue;  // incompatible idems
+        }
         
         /* Calculate new algebra element */
         std::vector<int> U_weights = old_d_module.U_weights(coef);
@@ -304,8 +325,15 @@ class Positive_crossing {
         else if (front_marking == W) { ++v1; }
         U_weights[position_] = v2 / 2;
         U_weights[position_ + 1] = v1 / 2;
-        auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, U_weights);
-        new_d_module.add_coef_bundle(alg_el, back_marking, front_marking, coef, old_d_module);
+        auto alg_el =
+          new_d_module.alg_el(new_source_idem, new_target_idem, U_weights);
+        new_d_module.add_coef_bundle(
+          alg_el,
+          back_marking,
+          front_marking,
+          coef,
+          old_d_module
+        );
       }
     }
   }  // delta_2_
@@ -318,29 +346,54 @@ class Positive_crossing {
     for (const auto& front_coef : old_d_module.coef_bundles()) {
       for (const auto& back_coef : old_d_module.others_to_source(front_coef)) {
         for (const Gen_type front_marking : {N, E, S, W}) {
-          if (!extendable_(old_d_module.target_idem(front_coef), front_marking)) { continue; }
-          //if (!extendable_(back_alg_el.source_idem(), S)) { continue; }  // check if I need this
-          if (!coef_exists_(back_coef, front_coef, front_marking, old_d_module)) { continue; }
+          if (
+            !extendable_(old_d_module.target_idem(front_coef), front_marking)
+          ) {
+            continue;
+          }
+          // check if I need this
+          //if (!extendable_(back_alg_el.source_idem(), S)) { continue; }
+          if (
+            !coef_exists_(back_coef, front_coef, front_marking, old_d_module)
+          ) {
+            continue;
+          }
           
-          const Idem& new_source_idem = old_d_module.source_idem(back_coef);  // back_marking is S
-          const Idem& new_target_idem = extend_(old_d_module.target_idem(front_coef), front_marking);
-          if (new_source_idem.too_far_from(new_target_idem)) { continue; }  // algebra element is null
+          // back_marking is S
+          const Idem& new_source_idem = old_d_module.source_idem(back_coef);
+          const Idem& new_target_idem =
+            extend_(old_d_module.target_idem(front_coef), front_marking);
+          if (new_source_idem.too_far_from(new_target_idem)) {
+            continue;  // algebra element is null
+          }
           
           /* Calculate new algebra element */
           auto concat_coef = old_d_module.concatenate(back_coef, front_coef);
           auto new_U_weights = old_d_module.U_weights(concat_coef);
           int a1, a2, u1, u2, b1, b2, v1, v2;
-          std::tie(a1, a2, u1, u2) = get_local_weights_(back_coef, old_d_module);
-          std::tie(b1, b2, v1, v2) = get_local_weights_(front_coef, old_d_module);
+          std::tie(a1, a2, u1, u2) =
+            get_local_weights_(back_coef, old_d_module);
+          std::tie(b1, b2, v1, v2) =
+            get_local_weights_(front_coef, old_d_module);
           int w1 = 2 * u1 + 2 * v1 + std::abs(a1) + std::abs(b1) - 1;
           int w2 = 2 * u2 + 2 * v2 + std::abs(a2) + std::abs(b2) - 1;
-          if (front_marking == E) { ++w2; } // extra weight corresponding to L_2
-          else if (front_marking == W) { ++w1; } // extra weight corresponding to R_1
+          if (front_marking == E) { ++w2; } // extra weight for L_2
+          else if (front_marking == W) { ++w1; } // extra weight for R_1
           new_U_weights[position_] = w2 / 2;
           new_U_weights[position_ + 1] = w1 / 2;
           /* Make and add new differential arc */
-          auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
-          new_d_module.add_coef_bundle(alg_el, S, front_marking, concat_coef, old_d_module);
+          auto alg_el = new_d_module.alg_el(
+            new_source_idem,
+            new_target_idem,
+            new_U_weights
+          );
+          new_d_module.add_coef_bundle(
+            alg_el,
+            S,
+            front_marking,
+            concat_coef,
+            old_d_module
+          );
         }
       }
     }
@@ -398,7 +451,7 @@ class Positive_crossing {
     
     hash_index = hash_index_(b1, b2, v1, v2, front_marking);
     Gen_type mid_marking = positive_look_back_[hash_index];
-    if (mid_marking == null_NEW) { return false; }  // check that mid is not null
+    if (mid_marking == null_NEW) { return false; }  // check that mid isn't null
     
     hash_index = hash_index_(a1, a2, u1, u2, mid_marking);
     Gen_type back_marking = positive_look_back_[hash_index];
@@ -451,15 +504,26 @@ class Positive_crossing {
   
   static Table make_positive_look_back_() {
     Table table;
-    boost::mpl::for_each< boost::mpl::vector_c< int, -1, 0, 1 > >([&table](int a1) {
-      boost::mpl::for_each< boost::mpl::vector_c< int, -1, 0, 1 > >([=, &table](int a2) {
-        boost::mpl::for_each< boost::mpl::vector_c< int, -1, 0, 1 > >([=, &table](int u1) {
-          boost::mpl::for_each< boost::mpl::vector_c< int, N, E, S, W > >([=, &table](int x) {
-            table.set_value(hash_index_(a1, a2, u1, 0, x), D2PHSEM_(a1, a2, u1, 0, x));
-          });
-        });
-      });
-    });
+    boost::mpl::for_each< boost::mpl::vector_c< int, -1, 0, 1 > >(
+      [&table](int a1) {
+        boost::mpl::for_each< boost::mpl::vector_c< int, -1, 0, 1 > >(
+          [=, &table](int a2) {
+            boost::mpl::for_each< boost::mpl::vector_c< int, -1, 0, 1 > >(
+              [=, &table](int u1) {
+                boost::mpl::for_each< boost::mpl::vector_c< int, N, E, S, W > >(
+                  [=, &table](int x) {
+                    table.set_value(
+                      hash_index_(a1, a2, u1, 0, x),
+                      D2PHSEM_(a1, a2, u1, 0, x)
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
     return table;
   }
    
@@ -488,8 +552,9 @@ class Positive_crossing {
   }
   
   static int pre_hash_index_(int a1, int a2, int u1, int u2) {
-    int i_local_LR = 4 + a1 - (3 * a2);  // nine values, with two 'impossible' ones: 0 and 8.
-    i_local_LR = i_local_LR & 7;  // mod 8. Not strictly necessary after creation of the table
+    int i_local_LR = 4 + a1 - (3 * a2);
+    // mod 8. Not strictly necessary after creation of the table
+    i_local_LR = i_local_LR & 7;
     
     int i_U_diff;  // sign of u1 - u2, with 3 = negative
     if (u1 > u2) i_U_diff = 1;
@@ -545,9 +610,9 @@ class Positive_crossing {
   static const Table positive_look_back_;
 };
 
-template< class D_module >
-const typename Positive_crossing< D_module >::Table
-  Positive_crossing< D_module >::positive_look_back_ =
-    Positive_crossing< D_module >::make_positive_look_back_();
+template< class D_module, class Morse_event_options >
+const typename Positive_crossing< D_module, Morse_event_options >::Table
+  Positive_crossing< D_module, Morse_event_options >::positive_look_back_ =
+    Positive_crossing< D_module, Morse_event_options >::make_positive_look_back_();
 
 #endif  // TEST_POSITIVE_CROSSING_H_

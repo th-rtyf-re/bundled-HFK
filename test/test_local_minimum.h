@@ -11,7 +11,7 @@
 
 #include <boost/any.hpp>
 
-template< class D_module >
+template< class D_module, class Morse_event_options >
 class Local_minimum {
  public:
   using Idem = typename D_module::Idem;
@@ -20,8 +20,8 @@ class Local_minimum {
   using Coef_bundle = typename D_module::Coef_bundle;
   using Weights = typename D_module::Weights;
   
-  Local_minimum(const std::vector< boost::any >& args) :
-    position_(args.empty() ? 0 : boost::any_cast< int >(args[0])) 
+  Local_minimum(const std::vector< typename Morse_event_options::Parameter_type >& args) :
+    position_(args.empty() ? 0 : Morse_event_options::template parameter_cast< int >(args[0])) 
   {
     if (position_ != 0) {
       std::cout << "[lm] Warning: local minimum not in position 0."
@@ -44,7 +44,10 @@ class Local_minimum {
         match = match - 2;
       }
     }
-    matchings.erase(matchings.begin() + position_, matchings.begin() + position_ + 2);
+    matchings.erase(
+      matchings.begin() + position_,
+      matchings.begin() + position_ + 2
+    );
     return matchings;
   }
   
@@ -133,7 +136,10 @@ class Local_minimum {
   }
     
 #ifdef VERBOSE
-  friend std::ostream& operator<<(std::ostream& os, const Local_minimum& morse_event) {
+  friend std::ostream& operator<<(
+    std::ostream& os,
+    const Local_minimum& morse_event
+  ) {
     os << "local minimum at position " << morse_event.position_;
     return os;
   }
@@ -198,8 +204,8 @@ class Local_minimum {
      */
     std::vector< Coef_bundle > L_1, R_1, U_0, U_1;
     for (Coef_bundle coef : old_d_module.coef_bundles()) {
-      bool s1 = old_d_module.source_idem(coef)[1]; // index 1 of source and target idempotents
-      bool t1 = old_d_module.target_idem(coef)[1];
+      bool s1 = old_d_module.source_idem(coef)[1]; // index 1 of source and
+      bool t1 = old_d_module.target_idem(coef)[1]; // target idempotents
       int u0 = old_d_module.U_weights(coef)[0]; // powers of U_0 and U_1
       int u1 = old_d_module.U_weights(coef)[1];
       
@@ -235,9 +241,11 @@ class Local_minimum {
         new_U_weights[upper_algebra.matchings[1]] += new_U_weights[0] - n_coefs;
         shorten_and_finish_(old_d_module, new_d_module, new_U_weights, coef);
       }
-      sequences_back = concatenate_groups_(old_d_module, sequences_back, sequences_mid);
+      sequences_back =
+        concatenate_groups_(old_d_module, sequences_back, sequences_mid);
       sequences = concatenate_groups_(old_d_module, sequences_back, R_1);
-      if (n_coefs >= 10) { std::cout << "[lm] Giving up!" << std::endl; return; }  // debug, I think
+      // debug, I think
+      if (n_coefs >= 10) { std::cout << "[lm] Giving up!" << std::endl; return; }
     }
   }
   
@@ -261,7 +269,8 @@ class Local_minimum {
           continue;
         }
         if (!old_d_module.compatible(back_coef, front_coef)) { continue; }
-        Coef_bundle concat_coef = old_d_module.concatenate(back_coef, front_coef);
+        Coef_bundle concat_coef =
+          old_d_module.concatenate(back_coef, front_coef);
         result.push_back(concat_coef);
       }
     }
@@ -304,13 +313,14 @@ class Local_minimum {
     
     /* Add composite coefficient, if possible */
     if (new_source_idem.too_far_from(new_target_idem)) { return; }
-    auto alg_el = new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
+    auto alg_el =
+      new_d_module.alg_el(new_source_idem, new_target_idem, new_U_weights);
     new_d_module.add_coef_bundle(alg_el, YR2, YR2, old_coef, old_d_module);
   }
   
   bool extendable_(const Idem& idem, const Gen_type marking) const {
     if (marking == YR2) {
-      return (idem[2] and !idem[1] and !idem[0]); // technically don't need !idem[0]
+      return (idem[2] and !idem[1] and !idem[0]); // don't need !idem[0]
     }
     return false;
   }

@@ -11,7 +11,7 @@
 
 #include <boost/any.hpp>
 
-template< class D_module >
+template< class D_module, class Morse_event_options >
 class Global_minimum {
  public:
   using Idem = typename D_module::Idem;
@@ -19,7 +19,7 @@ class Global_minimum {
   using Algebra = typename D_module::Bordered_algebra;
   using Weights = typename D_module::Weights;
   
-  Global_minimum(const std::vector< boost::any >&) { }
+  Global_minimum(const std::vector< typename Morse_event_options::Parameter_type >&) { }
   
   /* Topological methods */
   
@@ -27,7 +27,10 @@ class Global_minimum {
     return {0};
   }
   
-  std::vector< bool > upper_orientations(std::vector< bool >, const std::vector< int >&) const {
+  std::vector< bool > upper_orientations(
+    std::vector< bool >,
+    const std::vector< int >&
+  ) const {
     return {false, true};  // we choose the trigonometric orientation
   }
   
@@ -37,8 +40,13 @@ class Global_minimum {
   
   /* Return the LaTeX KnotDiagram2ASCII string for the knot slice.
    */
-  std::string to_string(const std::pair< int, int >& margins, const std::pair< int, int >&) const {
-    return std::string(margins.first - 1, '0') + "u" + std::string(margins.second - 1, '0');
+  std::string to_string(
+    const std::pair< int, int >& margins,
+    const std::pair< int, int >&
+  ) const {
+    return std::string(
+      margins.first - 1, '0') + "u" + std::string(margins.second - 1, '0'
+    );
   }
   
   /* Algebraic methods */
@@ -51,19 +59,32 @@ class Global_minimum {
     return {"{}"};
   }
   
-  D_module tensor_generators(D_module& new_d_module, const D_module& old_d_module, const Algebra&, const Algebra&) const {
+  D_module tensor_generators(
+    D_module& new_d_module,
+    const D_module& old_d_module,
+    const Algebra&,
+    const Algebra&
+  ) const {
     for (const auto& gen_handle : old_d_module.gen_bundle_handles()) {
       new_d_module.add_gen_bundle(Idem("0"), 0, gen_handle);
     }
     return new_d_module;
   }
   
-  D_module& tensor_coefficients(D_module& new_d_module, const D_module&, const Algebra&, const Algebra&) const {
+  D_module& tensor_coefficients(
+    D_module& new_d_module,
+    const D_module&,
+    const Algebra&,
+    const Algebra&
+  ) const {
     return new_d_module;
   }
   
 #ifdef VERBOSE
-  friend std::ostream& operator<<(std::ostream& os, const Global_minimum& morse_event) {
+  friend std::ostream& operator<<(
+    std::ostream& os,
+    const Global_minimum& morse_event
+  ) {
     os << "global minimum";
     return os;
   }

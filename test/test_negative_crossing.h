@@ -13,7 +13,7 @@
 #include "test_positive_crossing.h"
 #include "test_reverse_d_module.h"
 
-template< class D_module >
+template< class D_module, class Morse_event_options >
 class Negative_crossing {
  public:
   using Idem = typename D_module::Idem;
@@ -22,9 +22,9 @@ class Negative_crossing {
   using Coef_bundle = typename D_module::Coef_bundle;
   using Weights = typename D_module::Weights;  // currently, pair of int
   
-  using Positive_crossing = Positive_crossing< Reverse_D_module< D_module > >;
+  using Positive_crossing = Positive_crossing< Reverse_D_module< D_module >, Morse_event_options >;
   
-  Negative_crossing(const std::vector< boost::any >& args) :
+  Negative_crossing(const std::vector< typename Morse_event_options::Parameter_type >& args) :
     positive_crossing_(args)
   { }
   

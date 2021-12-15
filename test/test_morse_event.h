@@ -88,12 +88,14 @@ struct Algebraic_methods :
 { };
 
 
-template< class D_module >
-using Morse_event = boost::type_erasure::any<
+template< class D_module, class Morse_event_options >
+using Morse_event_base = boost::type_erasure::any<
   boost::mpl::vector<
     boost::type_erasure::copy_constructible<>,
     boost::type_erasure::constructible<
-      boost::type_erasure::_self(const std::vector< boost::any >&)
+      boost::type_erasure::_self(
+        const std::vector< typename Morse_event_options::Parameter_type >&
+      )
     >,
     Topological_methods,
     Algebraic_methods< D_module >,
@@ -103,5 +105,13 @@ using Morse_event = boost::type_erasure::any<
     boost::type_erasure::relaxed
   >
 >;
+
+template< class D_module_template, class Morse_event_options >
+struct Morse_event : Morse_event_base< D_module_template, Morse_event_options > {
+  using Base = Morse_event_base< D_module_template, Morse_event_options >;
+  
+  using Base::Base;
+  using D_module = D_module_template;
+};
 
 #endif  // TEST_MORSE_EVENT_H_
