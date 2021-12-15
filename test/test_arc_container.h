@@ -5,17 +5,25 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
+#include "test_forest_options.h"
+#include "test_node_container.h"
+
+/* Operations on arcs
+ * 
+ * Arcs are stored in a boost multi-index container, indexed by source and
+ * target nodes. Thus, we can iterate over arcs in order of source or target.
+ * This is useful for finding neighbors without too much overhead (maybe).
+ * 
+ * Mathematically speaking, this is a D-module without homotopy reduction
+ */
 template<
-  class Forest_options,
-  template< class > class Node_container_template
+  class Forest_options = Forest_options_default_short,
+  template< class > class Node_container_template = Node_container
 >
 class Arc_container : protected Node_container_template< Forest_options > {
  public:
   using Idem = typename Forest_options::Idem;
-  using Gen_type = typename Forest_options::Gen_type;
-  using Bordered_algebra = typename Forest_options::Bordered_algebra;
   using Alg_el = typename Forest_options::Alg_el;
-  using Weights = typename Forest_options::Weights;
   
   using Node_container = Node_container_template< Forest_options >;
   using typename Node_container::Root_handle;
@@ -166,15 +174,12 @@ class Arc_container : protected Node_container_template< Forest_options > {
       }
     }
     
-    if (arc_begin == arcs_view.begin()) {
-      return result;
-    }
-    
     arcs_below_node_(result, arcs_view, arc_begin, node);
     
     return result;
   }
   
+  /* Arcs strictly below a node */
   template< class Arc_view, class Arc_iterator = typename Arc_view::iterator >
   std::vector< Arc_reference >& arcs_below_node_(
     std::vector< Arc_reference >& arc_stream,
@@ -183,21 +188,21 @@ class Arc_container : protected Node_container_template< Forest_options > {
     int node
   ) const {
     auto get_endpoint = arcs_view.key_extractor();  // how costly is this?
-    int d_parent = to_parent(node);
-    int current_node = node - d_parent;
-    do {
+    
+    auto parent_it = this->ascender(this->parent(node));
+    // changed this from do-while, hopefully it doesn't break anything
+    while (parent_it.valid() and arc_it != arcs_view.begin()) {
       --arc_it;
       int endpoint = get_endpoint(*arc_it);
-      if (endpoint == current_node) {
+      if (endpoint == *parent_it) {
         arc_stream.emplace_back(*arc_it);
       }
-      else if (endpoint < current_node) {
-        do {
-          d_parent = to_parent(current_node);
-          current_node -= d_parent;
-        } while (d_parent != 0 and endpoint < current_node);
+      else if (endpoint < *parent_it) {
+        while (parent_it.valid() and endpoint < *parent_it) {
+          ++parent_it;
+        }
       }
-    } while (d_parent != 0 and arc_it != arcs_view.begin());
+    }
     
     return arc_stream;
   }
@@ -277,21 +282,26 @@ class Arc_container : protected Node_container_template< Forest_options > {
     int start_node = lower_arc_it->source;
     int n_nodes = descendants_size(start_node);
     int end_node = start_node + n_nodes;
-    std::vector< bool > marked(n_nodes, false);
+    std::vector< bool > marked(n_nodes, false);  // parent of new endpoints
+    std::vector< bool > except(n_nodes, false);  // except these enpoints
     
     for (; upper_arc_it != arcs_.end() and upper_arc_it->source < end_node; ) {
       if (overlap_(*lower_arc_it, *upper_arc_it)) {
         // Mark ascendants
-        int d_parent = to_parent(upper_arc_it->source);
-        int parent = upper_arc_it->source - d_parent;
-        while (d_parent > 0 and parent >= start_node) {
-          marked[parent - start_node] = true;
-          d_parent = to_parent(parent);
-          parent = parent - d_parent;
+        except[upper_arc_it->source - start_node] = true;
+        auto parent_it = this->ascender(this->parent(upper_arc_it->source));
+        while (
+          parent_it.valid()
+          and *parent_it >= start_node
+          and !marked[*parent_it - start_node]
+        ) {
+          marked[*parent_it - start_node] = true;
+          ++parent_it;
         }
         
         // Skip arcs until after children
         int desc_end = descendants_end(upper_arc_it->source);
+        upper_arc_it = arcs_.erase(upper_arc_it);
         for (; upper_arc_it != arcs_.end()
              and upper_arc_it->source < desc_end; ++upper_arc_it);
       }
@@ -301,7 +311,7 @@ class Arc_container : protected Node_container_template< Forest_options > {
     }
     
     // Place new arcs
-    raise_arcs_after_(*lower_arc_it, marked, start_node);
+    raise_arcs_after_(*lower_arc_it, marked, except, start_node);
     
     if (marked[0]) {  // arcs were raised
       lower_arc_it = arcs_.erase(lower_arc_it);
@@ -319,55 +329,53 @@ class Arc_container : protected Node_container_template< Forest_options > {
    * Returns true if a cancelation happened and false otherwise.
    */
   bool resolve_overlaps_before(Arc_iterator upper_arc_it) {
-    int upper_node = upper_arc_it->source;
-    std::vector< int > ancestors = { upper_node };
+    auto current_it = this->ascender(upper_arc_it->source);
+    std::vector< int > ancestors = { *current_it };
     
-    int d_parent = to_parent(upper_node);
-    int current_node = upper_node;
     auto lower_arc_it = upper_arc_it;
-    while (d_parent != 0 and lower_arc_it != arcs_.begin()) {
+    while (current_it.valid() and lower_arc_it != arcs_.begin()) {
       --lower_arc_it;
       int endpoint = lower_arc_it->source;
-      if (endpoint == current_node and overlap_(*lower_arc_it, *upper_arc_it)) {
-        ancestors.push_back(current_node);
+      while (current_it.valid() and endpoint < *current_it) {
+        ++current_it;
+        ancestors.push_back(*current_it);
+      }
+      if (endpoint == *current_it and overlap_(*lower_arc_it, *upper_arc_it)) {
         raise_arcs_before_(*lower_arc_it, ancestors);
         arcs_.erase(lower_arc_it);
         arcs_.erase(upper_arc_it);
         return true;
-      }
-      else if (endpoint < current_node) {
-        while (d_parent != 0 and endpoint < current_node) {
-          ancestors.push_back(current_node);
-          current_node -= d_parent;
-          d_parent = to_parent(current_node);
-        }
       }
     }
     
     return false;
   }
   
-  /* Raise all arcs below the given node.
+  /* Raise all arcs strictly below the given node. As a result, there are no
+   * arcs below the node.
    */
   template< class Tag >
   void raise_arcs_below_node(int node) {
     auto& arcs_view = arcs_.template get< Tag >();
     auto get_endpoint = arcs_view.key_extractor();  // how costly is this?
     
-    int current_node = node;
-    int d_parent = to_parent(node);
-    int parent = current_node - d_parent;
+    auto parent_it = this->ascender(this->parent(node));
     auto arc_it = arcs_view.lower_bound(node);
     
-    std::vector< int > new_endpoints = children_(parent);
+    std::vector< int > new_endpoints = children_(*parent_it);
     
-    // invariant at beginning of loop: endpoint of arc_it >= parent, and
-    // new_endpoints contains all places to raise an arc at parent.
-    while (d_parent != 0 and arc_it != arcs_view.begin()) {
+    // invariant at beginning of loop: endpoint of arc_it >= *parent_it, and
+    // new_endpoints contains all places to raise an arc at *parent_it.
+    while (parent_it.valid() and arc_it != arcs_view.begin()) {
       --arc_it;
       int endpoint = get_endpoint(*arc_it);
       
-      if (endpoint == parent) {
+      while (parent_it.valid() and endpoint < *parent_it) {
+        int child = *parent_it;
+        ++parent_it;
+        add_other_children_(new_endpoints, *parent_it, child);
+      }
+      if (endpoint == *parent_it) {
         for (const int new_endpoint : new_endpoints) {
           arcs_view.emplace(
             new_endpoint + arc_it->source - endpoint,
@@ -376,14 +384,6 @@ class Arc_container : protected Node_container_template< Forest_options > {
           );
         }
         arc_it = arcs_view.erase(arc_it);
-      }
-      else if (endpoint < parent) {
-        while (d_parent != 0 and endpoint < parent) {
-          current_node = parent;
-          d_parent = to_parent(current_node);
-          parent -= d_parent;
-          add_other_children_(new_endpoints, parent, current_node);
-        }
       }
     }
   }
@@ -400,15 +400,21 @@ class Arc_container : protected Node_container_template< Forest_options > {
   /* Raise original arc to avoid all marked nodes. The vector marked is
    * indexed relatively to a start node.
    * 
-   * !TBD! Marked nodes are never tbd.
+   * Raising arcs means placing an arc at each unmarked node whose parent is
+   * marked.
    */
   void raise_arcs_after_(
     const Arc& old_arc,
     const std::vector< bool >& marked,
+    const std::vector< bool >& except,
     const int start_node
   ) {
     for (int rel_node = 1; rel_node != marked.size(); ) {  // relative node index
-      if (!marked[rel_node] and marked[rel_node - to_parent(start_node + rel_node)]) {
+      if (
+        !marked[rel_node]
+        and !except[rel_node]
+        and marked[rel_node - to_parent(start_node + rel_node)]
+      ) {
         arcs_.emplace(start_node + rel_node, old_arc.target + rel_node, old_arc.value);
         rel_node += descendants_size(start_node + rel_node);
       }
@@ -437,13 +443,13 @@ class Arc_container : protected Node_container_template< Forest_options > {
     }
   }
   
-  /* !TBD! Check that children are not tbd.
-   */
   std::vector< int > children_(int node) const {
     std::vector< int > children;
-    for (int child = descendants_begin(node);
-         child != descendants_end(node);
-         child += descendants_size(child)) {
+    for (
+      int child = descendants_begin(node);
+      child != descendants_end(node);
+      child += descendants_size(child)
+    ) {
       children.push_back(child);
     }
     return children;
@@ -451,17 +457,17 @@ class Arc_container : protected Node_container_template< Forest_options > {
   
   /* Add the children of a parent to a vector of node indices, except for
    * a child that we avoid.
-   * 
-   * !TBD! Check that children are not tbd.
    */
   std::vector< int >& add_other_children_(
     std::vector< int >& node_stream,
     int parent,
     int avoiding
   ) const {
-    for (int child = descendants_begin(parent);
-         child != descendants_end(parent);
-         child += descendants_size(child)) {
+    for (
+      int child = descendants_begin(parent);
+      child != descendants_end(parent);
+      child += descendants_size(child)
+    ) {
       if (child != avoiding) {
         node_stream.push_back(child);
       }
@@ -473,10 +479,16 @@ class Arc_container : protected Node_container_template< Forest_options > {
   /* Miscellaneous other functions */
   
   bool compatible(const Arc& back_arc, const Arc& front_arc) const {
-    return ((back_arc.target <= front_arc.source
-             and front_arc.source < descendants_end(back_arc.target))
-         or (front_arc.source <= back_arc.target
-             and back_arc.target < descendants_end(front_arc.source)));
+    return (
+      (
+        back_arc.target <= front_arc.source
+        and front_arc.source < descendants_end(back_arc.target)
+      )
+      or (
+        front_arc.source <= back_arc.target
+        and back_arc.target < descendants_end(front_arc.source)
+      )
+    );
   }
   
   /* Concatenate two arcs, assuming that they are concatenable */
@@ -505,6 +517,15 @@ class Arc_container : protected Node_container_template< Forest_options > {
     for (auto arc_it = arcs_target_view.begin(); arc_it != arcs_target_view.end(); ++arc_it) {
       arcs_target_view.modify(arc_it, [&](Arc& arc) { arc.target -= offsets[arc.target]; });
     }
+  }
+  
+  /* I/O interface */
+  
+  friend std::ostream& operator<<(std::ostream& os, const Arc_container& ac) {
+    for (auto& arc : ac.arcs_) {
+      os << arc << " ";
+    }
+    return os;
   }
   
 #ifdef DRAW

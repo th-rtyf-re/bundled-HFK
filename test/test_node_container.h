@@ -7,7 +7,9 @@
 
 #include "test_forest_options.h"
 
-/* Nodes and roots
+/* Nodes and roots.
+ * 
+ * Mathematically, this is a (bundled) left module over a bordered algebra.
  */
 template< class Forest_options = Forest_options_default_short >
 class Node_container {
@@ -60,9 +62,44 @@ class Node_container {
          << "|"
 #endif  // DRAW
          << node.descendants_size
-         << "> ";
+         << ">";
       return os;
     }
+  };
+  
+  /* A sort-of iterator for parents.
+   * 
+   * This should satisfy LegacyIterator requirement.
+   */
+  class Ascender {
+   public:
+    Ascender(int node, const Node_container& nc) :
+      node_(node),
+      to_node_(1),
+      nc_(nc)
+    { }
+    
+    /* "indirection" */
+    int operator*() const {
+      return node_;
+    }
+    
+    /* "increment" */
+    Ascender& operator++() {
+      to_node_ = nc_.to_parent(node_);
+      node_ -= to_node_;
+      return *this;
+    }
+    
+    /* " != end " */
+    bool valid() const {
+      return to_node_ != 0;
+    }
+    
+   private:
+    int node_;
+    int to_node_;
+    const Node_container& nc_;
   };
   
   Node_container() { }
@@ -134,6 +171,10 @@ class Node_container {
   
   bool has_children(int i) const {
     return to_next(i) != descendants_size(i);
+  }
+  
+  Ascender ascender(int node) const {
+    return Ascender(node, *this);
   }
   
   /* Other observers, any cost */
@@ -333,7 +374,7 @@ class Node_container {
   
   friend std::ostream& operator<<(std::ostream& os, const Node_container& nc) {
     for (auto& node : nc.nodes_) {
-      os << node;
+      os << node << " ";
     }
     return os;
   }
