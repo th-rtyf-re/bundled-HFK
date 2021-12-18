@@ -456,9 +456,13 @@ class Positive_crossing {
     hash_index = hash_index_(a1, a2, u1, u2, mid_marking);
     Gen_type back_marking = positive_look_back_[hash_index];
     
-    hash_index = hash_index_(a1 + b1, a2 + b2,
+    hash_index = hash_index_(
+      a1 + b1,
+      a2 + b2,
       u1 + v1 + (std::abs(a1) + std::abs(b1)) / 2,
-      u2 + v2 + (std::abs(a2) + std::abs(b2)) / 2, front_marking);
+      u2 + v2 + (std::abs(a2) + std::abs(b2)) / 2,
+      front_marking
+    );
     Gen_type product_marking = positive_look_back_[hash_index];
     // check that back is not equal to product
     if (back_marking == product_marking) { return false; }
@@ -467,12 +471,26 @@ class Positive_crossing {
      * or (L_2, L_1U_1^n) for W. We exclude all other cases.
      * TO DO: Understand why this is here.
      */
-    if (product_marking == null_NEW and front_marking == E
-      and !(a1 == 1 and a2 == 0 and u1 == 0 and u2 == 0
-        and b1 == 0 and b2 == 1 and v1 == 0)) { return false; }
-    else if (product_marking == null_NEW and front_marking == W
-      and !(a1 == 0 and a2 == -1 and u1 == 0 and u2 == 0
-        and b1 == -1 and b2 == 0 and v2 == 0)) { return false; }
+    if (
+      product_marking == null_NEW
+      and front_marking == E
+      and !(
+        a1 == 1 and a2 == 0 and u1 == 0 and u2 == 0
+        and b1 == 0 and b2 == 1 and v1 == 0
+      )
+    ) {
+      return false;
+    }
+    else if (
+      product_marking == null_NEW
+      and front_marking == W
+      and !(
+        a1 == 0 and a2 == -1 and u1 == 0 and u2 == 0
+        and b1 == -1 and b2 == 0 and v2 == 0
+      )
+    ) {
+      return false;
+    }
     return true;
   }  // back_marking_exists_
     

@@ -29,6 +29,7 @@ class Knot_diagram {
   
   void import_data(const Morse_data_container& morse_data) {
     morse_data_ = morse_data;
+    morse_events_default_ = Detail_<>::get_morse_events(morse_data_);
   }
   
   /* Import from CSV.
@@ -104,9 +105,11 @@ class Knot_diagram {
     d_module.set_as_trivial();
     
     // box tensor product for each Morse event
-    for (const auto& da_bimodule : da_bimodules) {
-      std::cout << "[kd] Tensoring " << da_bimodule << "... " << std::flush;
-      d_module = box_tensor_product(da_bimodule, d_module);
+    for (int i = 0; i != da_bimodules.size(); ++i) {
+#ifdef VERBOSE
+      std::cout << "[kd] Morse event " << i << ": " << da_bimodules[i] << "... " << std::flush;
+#endif  // VERBOSE
+      d_module = box_tensor_product(da_bimodules[i], d_module);
 #ifdef DRAW
       suffix_forest << "Before reduction:\n";
       d_module.TeXify(suffix_forest);
@@ -237,7 +240,7 @@ class Knot_diagram {
  public:
   /* TeXify */
   void TeXify(std::ofstream& write_file) const {
-    std::cout << "[kd] Drawing knot..." << std::endl;
+    std::cout << "[kd] Drawing knot..." << std::flush;
     
     const auto margins = get_margins_();
     const auto algebras = Detail_<>::get_bordered_algebras(morse_events_default_);
@@ -250,6 +253,8 @@ class Knot_diagram {
       ) << std::endl;
 	}
     write_file << "}" << std::flush;
+    
+    std::cout << "done." << std::endl;
   }
   
  private:
@@ -267,6 +272,7 @@ class Knot_diagram {
   }
   
   Morse_data_container morse_data_;
+  
   std::vector< Morse_event< D_module_default, Morse_event_options > > morse_events_default_;
 };
 

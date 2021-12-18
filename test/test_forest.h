@@ -15,7 +15,6 @@
 
 // For default template values
 #include "test_forest_options.h"
-#include "test_node_container.h"
 #include "test_arc_container.h"
 
 /* Differential suffix forest.
@@ -26,16 +25,9 @@
  * This class also contains the main interface with DA-bimodules and Morse
  * events.
  */
-template<
-  class Forest_options = Forest_options_default_short,
-  template< class > class Node_container_template = Node_container,
-  template<
-    class,
-    template< class > class
-  > class Arc_container_template = Arc_container
->
+template< class Forest_options = Forest_options_default_short >
 class Forest :
-  public Arc_container_template< Forest_options, Node_container_template >
+  private Arc_container< Forest_options >
 {
  public:
   using Idem = typename Forest_options::Idem;
@@ -44,14 +36,12 @@ class Forest :
   using Alg_el = typename Forest_options::Alg_el;
   using Weights = typename Forest_options::Weights;
   
-  using Node_container = Node_container_template< Forest_options >;
+  using Arc_container = Arc_container< Forest_options >;
+  
+  using Node_container = typename Arc_container::Node_container;
   using typename Node_container::Root_handle;
   using typename Node_container::Root_handle_container;
   
-  using Arc_container = Arc_container_template<
-    Forest_options,
-    Node_container_template
-  >;
   using Arc = typename Arc_container::Arc;
   using Arc_view = typename Arc_container::Arc_view;
   using Arc_iterator = typename Arc_container::Arc_iterator;
@@ -230,6 +220,7 @@ class Forest :
   void reduce() {
     bool reduction = true;
     while (reduction) {
+//    std::cout << "[f] " << *this << std::endl;
       reduction = false;
       for (auto arc_it = this->arcs_begin(); arc_it != this->arcs_end(); ) {
         if (arc_it->value.is_invertible()) {
@@ -241,9 +232,12 @@ class Forest :
         }
       }
     }
+    
     const auto offsets = this->node_offsets();
     this->prune_nodes(offsets);
     this->update_arc_endpoints(offsets);
+//    std::cout << "[f] number of generators: " << this->n_leaves() << std::endl;
+//    std::cout << "[f] number of arcs: " << this->arcs_.size() << std::endl;
   }
   
  private:
@@ -256,20 +250,20 @@ class Forest :
     std::vector< Arc > zigzag_arcs;
     
     const Arc& reverse_arc = *reverse_arc_it;
-    resolve_critical_(reverse_arc);
+    raise_to_critical_(reverse_arc);
     
     for (const Arc& back_arc : this->others_to_target(reverse_arc)) {
       for (const Arc& front_arc : this->others_from_source(reverse_arc)) {
-        std::cout << "[f] Making zig-zag arc from "
-          << back_arc << " "
-          << reverse_arc << " "
-          << front_arc << std::endl;
+//         std::cout << "[f] Making zig-zag arc from "
+//           << back_arc << " "
+//           << reverse_arc << " "
+//           << front_arc << std::endl;
         zigzag_arcs = add_zigzag_(zigzag_arcs, back_arc, reverse_arc, front_arc);
       }
     }
     
     for (const Arc& zigzag_arc : zigzag_arcs) {
-      std::cout << "[f] Adding zig-zag arc " << zigzag_arc << std::endl;
+//      std::cout << "[f] Inserting zig-zag arc " << zigzag_arc << std::endl;
       this->insert_arc(zigzag_arc);
     }
     
@@ -291,7 +285,9 @@ class Forest :
    * 
    * This needs to be done for source and target.
    */
-  void resolve_critical_(const Arc& critical_arc) {
+  void raise_to_critical_(const Arc& critical_arc) {
+    // technically this is suboptimal, we only need to raise arcs to the
+    // lowest single child ancestor (this can be computed already)
     this->template raise_arcs_below_node< Source >(critical_arc.source);
     this->template raise_arcs_below_node< Source >(critical_arc.target);
     this->template raise_arcs_below_node< Target >(critical_arc.source);
@@ -314,16 +310,16 @@ class Forest :
     int target = front_arc.target;
     
     int back_diff = back_arc.target - reverse_arc.target;
-    if (back_diff < 0) {
-      source -= back_diff;
-      back_diff = 0;
-    }
-    
+//     if (back_diff < 0) {  // not needed if we raise arcs to critical one
+//       source -= back_diff;
+//       back_diff = 0;
+//     }
+//     
     int front_diff = front_arc.source - reverse_arc.source;
-    if (front_diff < 0) {
-      target -= front_diff;
-      front_diff = 0;
-    }
+//     if (front_diff < 0) {
+//       target -= front_diff;
+//       front_diff = 0;
+//     }
     
     // At this point, the back and front arcs are at least as high as the
     // reverse arc.
@@ -332,15 +328,21 @@ class Forest :
       back_diff <= front_diff
       and front_diff < back_diff + this->descendants_size(back_arc.target)
     ) {
+      if (source_idem(back_arc).too_far_from(target_idem(front_arc))) { return arc_stream; }
+      const Alg_el product = back_arc.value * front_arc.value;
+      if (product.is_null()) { return arc_stream; }
       source += front_diff - back_diff;
-      arc_stream.emplace_back(source, target, back_arc.value * front_arc.value);
+      arc_stream.emplace_back(source, target, product);
     }
     else if (
       front_diff <= back_diff
       and back_diff < front_diff + this->descendants_size(front_arc.source)
     ) {
+      if (source_idem(back_arc).too_far_from(target_idem(front_arc))) { return arc_stream; }
+      const Alg_el product = back_arc.value * front_arc.value;
+      if (product.is_null()) { return arc_stream; }
       target += back_diff - front_diff;
-      arc_stream.emplace_back(source, target, back_arc.value * front_arc.value);
+      arc_stream.emplace_back(source, target, product);
     }
     return arc_stream;
   }
@@ -349,16 +351,15 @@ class Forest :
    * has one child.
    */
   int greatest_single_child_ancestor_(int node) const {
-    int d_parent = this->to_parent(node);
-    int parent = node - d_parent;
+    auto parent_it = this->ascender(this->parent(node));
     // Check that node is the first and last child of parent
     while (
-      this->descendants_size(parent)
-      == this->descendants_size(node) + this->to_next(parent)
+      parent_it.valid()
+      and this->descendants_size(*parent_it)
+        == this->descendants_size(node) + this->to_next(*parent_it)
     ) {
-      node = parent;
-      d_parent = this->to_parent(node);
-      parent = node - 1;
+      node = *parent_it;
+      ++parent_it;
     }
     return node;
   }
@@ -376,16 +377,14 @@ class Forest :
   /* I/O interface */
   
   friend std::ostream& operator<<(std::ostream& os, const Forest& forest) {
-    os << "Forest nodes: ";
+    os << "Forest nodes:\n";
     for (auto& node : forest.nodes_) {
-      os << node;
+      os << "  " << node << "\n";
     }
-    os << std::endl;
-    os << "Forest arcs: ";
+    os << "\nForest arcs:\n";
     for (auto& arc : forest.coef_bundles()) {
-      os << arc << " ";
+      os << "  " << arc << "\n";
     }
-    os << std::endl;
     return os;
   }
 

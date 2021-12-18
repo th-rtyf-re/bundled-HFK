@@ -200,6 +200,16 @@ class Node_container {
     return result;
   }
   
+  int n_leaves() const {
+    int count = 0;
+    for (auto& node : nodes_) {
+      if (node.to_next == node.descendants_size) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+  
   /* MODIFIERS */
   
   int push_back_root(const Idem idem) {
@@ -279,12 +289,19 @@ class Node_container {
   /* Pruning stuff */
   
   std::vector< int > node_offsets() const {
-    std::vector< int > offsets(nodes_.size(), -1);
-    int offset = 0;
-    for (auto value_pair : root_idems_) {
-      node_offsets_rec_(offsets, offset, value_pair.first);
+    std::vector< int > offsets(nodes_.size() + 1, -1);
+    
+    std::vector< int > something;
+    
+    int node = root_idems_.begin()->first;
+    int offset = node;
+    
+    for (; node != nodes_.size(); node += to_next(node)) {
+      offsets[node] = offset;
+      offset += to_next(node) - 1;
     }
-    offsets.push_back(offset);
+    
+    offsets.back() = offset;
     return offsets;
   }
   
@@ -322,21 +339,6 @@ class Node_container {
     root_idems_.swap(new_root_idems);
   }
   
- private:
-  std::vector< int > node_offsets_rec_(std::vector< int >& offsets,
-                                      int& offset,
-                                      const int node) const {
-    offsets[node] = offset;
-    offset += to_next(node) - 1;
-    for (int child = descendants_begin(node);
-         child != descendants_end(node);
-         child += descendants_size(child)) {
-      node_offsets_rec_(offsets, offset, child);
-    }
-    return offsets;
-  }
-  
- public:
   /* Poincaré polynomial stuff */
   
   template< class Polynomial >
@@ -348,6 +350,16 @@ class Node_container {
       }
     }
     return Polynomial(0);
+  }
+  
+  Weights generator_weights(int leaf) const {
+    Weights weights = {0, 0};
+    for (auto node_it = ascender(leaf); node_it.valid(); ++node_it) {
+      Weights new_weights = this->weights(*node_it);
+      weights.first += new_weights.first;
+      weights.second += new_weights.second;
+    }
+    return weights;
   }
   
  private:
@@ -394,8 +406,6 @@ class Node_container {
       add_to_grid_(grid, 0, value_pair.first);
     }
     
-    std::string extra_options("");
-    
     /* Put idempotents for the roots */
     int i = 0;
     for (auto value_pair : root_idems_) {
@@ -406,7 +416,7 @@ class Node_container {
                    << grid_point.second
                    << ","
                    << 0
-                   << ") {" << extra_options << "\\nodeLabel{"
+                   << ") {" << value_pair.first << "\\nodeLabel{"
                    << value_pair.second
                    << "}};" << std::endl;
       ++i;
@@ -420,7 +430,7 @@ class Node_container {
                    << grid_point.second
                    << ","
                    << static_cast<float>(layer) * y_sep_
-                   << ") {" << extra_options << "\\nodeLabel{0}};\n"
+                   << ") {" << grid_point.first << "};\n"
                    << "\\draw[->] ("
                    << grid_point.first
                    << ") -- node[in place]{$"
@@ -428,6 +438,22 @@ class Node_container {
                    << "$} ("
                    << (grid_point.first - nodes_[grid_point.first].to_parent)
                    << ");" << std::endl;
+      }
+    }
+    
+    if (!grid.empty()) {
+      float y_poly = static_cast<float>(grid.size() - 1) * y_sep_ + poly_sep_;
+      for (Grid_point_& grid_point : grid.back()) {
+        const Weights weights = generator_weights(grid_point.first);
+        write_file << "\\node at ("
+                   << grid_point.second
+                   << ","
+                   << y_poly
+                   << ") {\\footnotesize$"
+                   << weights.first
+                   << ", "
+                   << weights.second
+                   << "$};" << std::endl;
       }
     }
     
@@ -445,6 +471,8 @@ class Node_container {
   static constexpr float min_x_sep_ = 1.;
   // vertical distance between nodes
   static constexpr float y_sep_ = .8;
+  // vertical distance between polynomial and leaf
+  static constexpr float poly_sep_ = .3;
   
   void add_to_grid_(Grid_& grid, int layer, int node) const {
     float x;
