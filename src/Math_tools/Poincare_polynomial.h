@@ -28,6 +28,7 @@
 #include <sstream>
 #include <string>
 #include <utility>  // pair
+#include <vector>
 
 /* Poincaré polynomials.
  * 
@@ -98,6 +99,9 @@ class Poincare_polynomial {
     return *this;
   }
   
+  /* A monomial-like object has two member coefficients, first and second,
+   * where first is in 1/2Z and second is in Z.
+   */
   template< class Monomial_like >
   Poly& operator*=(const Monomial_like& monomial) {
     for (auto& term : terms_) {

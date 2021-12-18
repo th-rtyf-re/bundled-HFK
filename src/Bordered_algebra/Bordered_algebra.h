@@ -161,8 +161,14 @@ struct Bordered_algebra {
     }  // is null
     
     bool is_invertible() const {
-      return ((source_idem_ == target_idem_)
-        and std::none_of(U_weights_.begin(), U_weights_.end(), [](int n) { return n; }));
+      return (
+        (source_idem_ == target_idem_)
+        and std::none_of(
+          U_weights_.begin(),
+          U_weights_.end(),
+          [](int n) { return n; }
+        )
+      );
     }
     
     /* Produce the algebra element associated to the differential cell, in LaTeX
