@@ -2,13 +2,13 @@
 ### Running the example
 
 Before compiling,
-[build Regina from source](https://regina-normal.github.io/source.html),
+[build Regina from source](https://regina-normal.github.io/source.html) and
 download [`ComputeHFKv2`](https://web.math.princeton.edu/~szabo/HFKcalc.html)
 to the `utilities` folder. To compile, run
 ```
 sh compile.sh
 ```
-*Note:* The file `compile.sh` looks like:
+**Note:** The file `compile.sh` looks like:
 ```
 g++ -O3 \
   Full_interface.cpp \
@@ -49,7 +49,7 @@ the event. The possible events are:
 
 It is required that all local minima appear in position `0`.
 
-As an example,
+For example,
 ```
 2,0
 2,0
@@ -69,19 +69,18 @@ should produce the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 ### Planar diagram
 
 The option `-pd` takes one argument, a text file containing a planar diagram
-as described in Osváth and Szabó's
+as described in Osváth and Szabó's program
 [`ComputeHFKv2`](https://web.math.princeton.edu/~szabo/HFKcalc.html). See there
-for a complete description of the syntax.
+for a description of the syntax.
 
 The download link on that page also provides examples of planar diagram text
 files, which you can use.
 
 ### Regina signature
 
-The option `-rs` takes a `CSV` file of
-[Regina](https://regina-normal.github.io/) knot signatures, coming from Benjamin
-Burton's [knot tables](https://regina-normal.github.io/data.html#knots). You
-can download the knot tables and run the program on the files.
+The option `-rs` takes a `CSV` file of Regina knot signatures, coming from
+Benjamin Burton's [knot tables](https://regina-normal.github.io/data.html#knots).
+You can download the knot tables and run the program on the files.
 
 Without extra arguments, the program will compute the knot Floer homology of
 each knot in the file. You can specify a start point, as well as an end point.
