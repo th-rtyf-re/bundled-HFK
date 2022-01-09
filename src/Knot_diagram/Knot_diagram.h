@@ -1,70 +1,41 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
- *                                                                           *
- *  Bundled HFK - a knot Floer homology calculator                           *
- *                                                                           *
- *  Copyright (C) 2021  Isaac Ren                                            *
- *  For further details, contact Isaac Ren (gopi3.1415@gmail.com).           *
- *                                                                           *
- *  This program is free software: you can redistribute it and/or modify     *
- *  it under the terms of the GNU General Public License as published by     *
- *  the Free Software Foundation, either version 3 of the License, or        *
- *  (at your option) any later version.                                      *
- *                                                                           *
- *  This program is distributed in the hope that it will be useful,          *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU General Public License for more details.                             *
- *                                                                           *
- *  You should have received a copy of the GNU General Public License        *
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.   *
- *                                                                           *
-\* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 #ifndef KNOT_DIAGRAM_H_
 #define KNOT_DIAGRAM_H_
 
 #include <fstream>
+#include <iostream>
 #include <string>  // stoi
-#include <utility>  // swap
+#include <utility>  // pair
 #include <vector>
 
-#include "Morse_event/Event_registers.h"  // Knot_slice_register, DA_bimodule_register
+//#include <boost/any.hpp>
 
-/* Knot diagram.
- * 
- * Class that serves as an interface with the input knot. Currently, we take
- * a CSV file of Morse events. The CSV file should have two integers per line,
- * separated by a comma:
- *
- *   position0,event0
- *   position1,event1
- *   etc.
- *
- * The code for events is:
- * - 0: positive crossing
- * - 1: negative crossing
- * - 2: local maximum
- * - 3: local minimum
- * Comment out a line by adding a '#' at the beginning.
- * 
- * This class also calculates knot Floer homology, provided a class satisfying
- * some "D-module" concept.
+#include "Differential_suffix_forest/Differential_suffix_forest.h"
+#include "Math_tools/DA_bimodule.h"
+#include "Morse_event/Morse_event.h"
+#include "Morse_event/Morse_event_options.h"
+
+/* None of this is optimized, because its cost is minimal in the big picture.
  */
+template< template< class, class > class ...Morse_events >
 class Knot_diagram {
  public:
-  using Knot_slice_handle = typename Knot_slice_register::Knot_slice_handle;
+  using D_module_default = Forest<>;
+  using Morse_event_options = Morse_event_options_int;
+  using Parameter_type = typename Morse_event_options::Parameter_type;
+  using Morse_data_container =
+    std::vector< std::pair< int, std::vector< Parameter_type > > >;
   
-  Knot_diagram() { }
+  Knot_diagram () { }
   
-  /* Delete copy constructor and assignment because of unique pointers */
-  Knot_diagram(Knot_diagram&) = delete;
-  Knot_diagram& operator=(Knot_diagram&) = delete;
-  Knot_diagram(Knot_diagram&&) = default;
-  Knot_diagram& operator=(Knot_diagram&&) = default;
-  ~Knot_diagram() = default;
+  void import_data(const Morse_data_container& morse_data) {
+    morse_data_ = morse_data;
+    morse_events_default_ = Detail_<>::get_morse_events(morse_data_);
+  }
   
   /* Import from CSV.
    * Import a Morse event list from a CSV file given by filename.
+   * 
+   * event, position (different from current version)
    */
   template< class Filename_type >
   void import_csv(const Filename_type& filename) {
@@ -78,9 +49,12 @@ class Knot_diagram {
       exit(1);
     }
     
-    std::vector< std::pair< int, Morse_event > > morse_events;
     int line_number = 1;
-    for (std::string line; std::getline(morse_event_csv, line, '\n'); ++line_number) {
+    for (
+      std::string line;
+      std::getline(morse_event_csv, line, '\n');
+      ++line_number
+    ) {
       if (line[0] == '#') { continue; }  // comment line
       else if (line.find_first_of("0123456789") != 0) {  // syntax error
         std::cout << "[kd] Line "
@@ -92,151 +66,214 @@ class Knot_diagram {
         continue;
       }
       auto i = line.find(',');
-      std::string position = line.substr(0, i);
-      std::string pre_event = line.substr(i + 1);
-      morse_events.push_back({std::stoi(position), static_cast< Morse_event >(std::stoi(pre_event))});
+      int event = std::stoi(line.substr(0, i));
+      int position = std::stoi(line.substr(i + 1));
+      morse_data_.push_back({event, {position}});
     }
     morse_event_csv.close();
     
-    import_morse_events(morse_events);
+    morse_events_default_ = Detail_<>::get_morse_events(morse_data_);
   }  // import_csv
   
-  /* Create knot slices based on a list (position, event) */
-  void import_morse_events(std::vector< std::pair< int, Morse_event > > morse_events) {
-    if (!morse_events.empty()) {
-      morse_events.back().second = Morse_event::global_minimum;  // set global minimum
-    }
-    
-    /* Add knot slices and calculate max_n_strands_ at the same time */
+  int max_n_strands() const {
     int n_strands = 0;
-    max_n_strands_ = 0;
-    for (auto& value : morse_events) {
-      int position = value.first;
-      auto event_id = value.second;
-      knot_slices_.push_back(Knot_slice_register::knot_slice(event_id, position, n_strands));
-      n_strands = knot_slices_.back()->lower_n_strands();
-      if (n_strands > max_n_strands_) {
-        max_n_strands_ = n_strands;
+    int max_n_strands = 0;
+    
+    for (const auto morse_event : morse_events_default_) {
+      // hack to get lower n strands via the lower matchings vector
+      n_strands =
+        morse_event.lower_matchings(std::vector< int >(n_strands, 0)).size();
+      if (n_strands > max_n_strands) {
+        max_n_strands = n_strands;
       }
     }
-    
-    if (n_strands > 0) {
-      std::cout << "[kd] Knot diagram not closed. Behavior is undefined." << std::endl;
-    }
-  }  // import_morse_events
-  
-  int max_n_strands() const {
-    return max_n_strands_;
+    return max_n_strands;
   }
   
-  /* Calculate knot Floer homology using the templated classes for D-modules
-   * and DA-bimodules.
-   * 
-   * D_module must satisfy some "D-module" concept.
-   */
-  template< class D_module >
-  typename D_module::Polynomial knot_Floer_homology() const {
-    auto da_bimodules = da_bimodules_< D_module >();
+  template< class Polynomial, class D_module >
+  Polynomial knot_Floer_homology() const {
+#ifdef BUNDLED_HFK_VERBOSE_
+    std::cout << "[kd] Computing knot Floer homology..." << std::endl;
+#endif  // BUNDLED_HFK_VERBOSE_
+#ifdef BUNDLED_HFK_DRAW_
+    std::ofstream suffix_forest("differential_suffix_forest.tex");
+#endif  // BUNDLED_HFK_DRAW_
     
-    std::ofstream write_file("differential_suffix_tree.tex");  // debug LaTeX file
+    const auto da_bimodules = Detail_< D_module >::get_da_bimodules(morse_data_);
+    
     D_module d_module;
     d_module.set_as_trivial();
     
-    /* Box tensor product for each slice */
-    for (auto da_bimodule_it = da_bimodules.begin();
-              da_bimodule_it != da_bimodules.end(); ++da_bimodule_it) {
-#ifdef DEBUG
-      std::cout << "[hfk] Tensoring... " << std::flush;
-#endif  // DEBUG
-      d_module = box_tensor_product(d_module, **da_bimodule_it);
-      
-#ifdef DEBUG
-      std::cout << "Reducing... " << std::flush;
-#endif  // DEBUG
-      while (!d_module.reduce(da_bimodule_it, write_file)) { /* Not done reducing */ }
-      
-#ifdef DEBUG
-      d_module.debug();
-      std::cout << "Number of arcs: " << d_module.aggl_coefs().size() << std::flush;
-      std::cout << std::endl;
-#endif  // DEBUG
+    // box tensor product for each Morse event
+    for (int i = 0; i != da_bimodules.size(); ++i) {
+#ifdef BUNDLED_HFK_VERBOSE_
+      std::cout << "[kd] layer " << i << ": " << da_bimodules[i] << "... " << std::flush;
+#endif  // BUNDLED_HFK_VERBOSE_
+      d_module = box_tensor_product(da_bimodules[i], d_module);
+#ifdef BUNDLED_HFK_DRAW_
+      suffix_forest << "Before reduction:\n";
+      d_module.TeXify(suffix_forest);
+      suffix_forest << "\n" << std::flush;
+#endif  // BUNDLED_HFK_DRAW_
+#ifdef BUNDLED_HFK_VERBOSE_
+      std::cout << "reducing... " << std::flush;
+#endif  // BUNDLED_HFK_VERBOSE_
+      d_module.reduce();
+#ifdef BUNDLED_HFK_DRAW_
+      suffix_forest << "After reduction:\n";
+      d_module.TeXify(suffix_forest);
+      suffix_forest << "\n\n" << std::flush;
+#endif  // BUNDLED_HFK_DRAW_
+#ifdef BUNDLED_HFK_VERBOSE_
+      std::cout << "done." << std::endl;
+#endif  // BUNDLED_HFK_VERBOSE_
     }
-        
-    write_file.close();
-    return d_module.poincare_polynomial(std::prev(da_bimodules.end()));
-  }  // knot_Floer_homology
+    
+#ifdef BUNDLED_HFK_DRAW_
+    suffix_forest.close();
+#endif  // BUNDLED_HFK_DRAW_
+    
+    return d_module.template poincare_polynomial< Polynomial >();
+  }
   
  private:
-  /* Calculate and return DA-bimodule handles */
-  template< class D_module, class DA_bimodule_handle = typename DA_bimodule_register< D_module >::DA_bimodule_handle >
-  std::vector< DA_bimodule_handle > da_bimodules_() const {
-    auto algebras = bordered_algebras_< typename D_module::Bordered_algebra >();
-    std::vector< DA_bimodule_handle > da_bimodules;
-    for (int i = 0; i < knot_slices_.size(); ++i) {
-      da_bimodules.push_back(DA_bimodule_register< D_module >::da_bimodule(knot_slices_[i], algebras[i], algebras[i + 1]));
-    }
-    return da_bimodules;
-  }
   
-  /* Calculate and return bordered algebras */
-  template< class Bordered_algebra >
-  std::vector< Bordered_algebra > bordered_algebras_() const {
-    std::vector< Bordered_algebra > algebras;
+  /* All the private methods depend on the choice of D-module. In order to
+   * make things hopefully more readable, I've put all these methods as static
+   * methods in a private struct Detail_, templated by D_module.
+   */
+  template< class D_module = D_module_default >
+  struct Detail_ {
+    using Bordered_algebra = typename D_module::Bordered_algebra;
+    using Morse_event = Morse_event< D_module, Morse_event_options >;
+    using DA_bimodule = DA_bimodule< Morse_event >;
     
-    /* Place algebras */
-    Bordered_algebra inital_algebra;
-    inital_algebra.n_strands = 0;
-    algebras.push_back(inital_algebra);
-    
-    for (const auto& slice : knot_slices_) {
-      Bordered_algebra lower_algebra;
-      lower_algebra.n_strands = slice->lower_n_strands();
-      algebras.push_back(lower_algebra);
+    static std::vector< DA_bimodule > get_da_bimodules(
+      const Morse_data_container& morse_data
+    ) {
+      std::vector< DA_bimodule > da_bimodules;
+      
+      const auto morse_events = get_morse_events(morse_data);
+      const auto algebras = get_bordered_algebras(morse_events);
+      
+      for (int i = 0; i != morse_events.size(); ++i) {
+        da_bimodules.emplace_back(morse_events[i],
+                                  algebras[i],
+                                  algebras[i + 1]);
+      }
+      
+      return da_bimodules;
     }
     
-    /* Calculate matchings top-down */
-    for (int i = 0; i < knot_slices_.size() - 1; ++i) {
-      algebras[i + 1].matchings = knot_slices_[i]->lower_matchings(algebras[i].matchings);
+    static std::vector< Morse_event > get_morse_events(
+      const Morse_data_container& morse_data
+    ) {
+      std::vector< Morse_event > morse_events;
+      
+      for (const auto value_pair : morse_data) {
+        morse_events.push_back(instance(value_pair.first, value_pair.second));
+      }
+      
+      return morse_events;
     }
     
-    /* Calculate orientations bottom-up */
-    for (int i = knot_slices_.size() - 1; i >= 0; --i) {
-      algebras[i].orientations = knot_slices_[i]->upper_orientations(algebras[i + 1].orientations, algebras[i].matchings);
+    static std::vector< Bordered_algebra > get_bordered_algebras(
+      const std::vector< Morse_event >& morse_events
+    ) {
+      std::vector< Bordered_algebra > algebras(morse_events.size() + 1);
+      
+      // Place algebras
+      algebras[0].n_strands = 0;
+      
+      // Calculate matchings and n_strands top-down
+      for (int i = 0; i < morse_events.size() - 1; ++i) {
+        algebras[i + 1].matchings =
+          morse_events[i].lower_matchings(algebras[i].matchings);
+        algebras[i + 1].n_strands = algebras[i + 1].matchings.size();
+      }
+      
+      // Calculate orientations bottom-up
+      for (int i = morse_events.size() - 1; i >= 0; --i) {
+        algebras[i].orientations =
+          morse_events[i].upper_orientations(
+            algebras[i + 1].orientations, algebras[i].matchings);
+      }
+      return algebras;
     }
-    return algebras;
-  }
+    
+    /* Return an instance of the i^th Morse event, as listed in the template,
+     * constructed using arguments.
+     */
+    static Morse_event instance(const int i, const std::vector< Parameter_type >& args) {
+      return instance_aux_< 0, Morse_events... >(i, args);
+    }
+    
+   private:
+    /* I need to add a dummy class template because I can't partially
+     * specialize for the initialization otherwise.
+     * The other possibility is requiring at least one Morse event, but
+     * I want to leave the possibility of having no Morse events.
+     */
+    template<
+      int,
+      template< class, class > class Morse_events_head,
+      template< class, class > class ...Morse_events_tail >
+    static Morse_event instance_aux_(
+      const int i,
+      const std::vector< Parameter_type >& args
+    ) {
+      if (i == 0) {
+        return Morse_event(Morse_events_head< D_module, Morse_event_options >(args));
+      }
+      else {
+        return instance_aux_< 0, Morse_events_tail... >(i - 1, args);
+      }
+    }
+    
+    // Initialization: 
+    template< int >
+    static Morse_event instance_aux_(const int, const std::vector< Parameter_type >&) {
+      return Morse_event();
+    }
+  };
   
  public:
   /* TeXify */
   void TeXify(std::ofstream& write_file) const {
-    std::cout << "[kd] Drawing knot..." << std::endl;
-    std::vector< std::pair< int, int > > margins = get_margins_();
+    std::cout << "[kd] Drawing knot..." << std::flush;
     
-    //std::ofstream write_file;
-    //write_file.open(filename);
+    const auto margins = get_margins_();
+    const auto algebras = Detail_<>::get_bordered_algebras(morse_events_default_);
     
     write_file << "\\KnotDiagram{" << std::endl;
-    for (int i = 0; i < knot_slices_.size(); ++i) {
-      write_file << knot_slices_[i]->to_string(margins[i]) << std::endl;
+    for (int i = 0; i < morse_events_default_.size(); ++i) {
+      write_file << morse_events_default_[i].to_string(
+        margins[i],
+        {algebras[i].n_strands, algebras[i + 1].n_strands}
+      ) << std::endl;
 	}
     write_file << "}" << std::flush;
     
-    //write_file.close();
+    std::cout << "done." << std::endl;
   }
   
  private:
   std::vector< std::pair< int, int > > get_margins_() const {
     std::vector< std::pair< int, int > > margins;
-    std::pair< int, int > current_margins = {max_n_strands_ / 2, max_n_strands_ / 2};
-    for (const auto& slice : knot_slices_) {
-      current_margins = slice->update_margins(current_margins);
+    
+    const int m = max_n_strands();
+    
+    std::pair< int, int > current_margins = {m / 2, m / 2};
+    for (const auto& morse_event : morse_events_default_) {
+      current_margins = morse_event.update_margins(current_margins);
       margins.push_back(current_margins);
     }
     return margins;
   }
   
-  std::vector< Knot_slice_handle > knot_slices_;
-  int max_n_strands_;
+  Morse_data_container morse_data_;
+  
+  std::vector< Morse_event< D_module_default, Morse_event_options > > morse_events_default_;
 };
 
 #endif  // KNOT_DIAGRAM_H_
