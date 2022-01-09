@@ -1,6 +1,6 @@
 g++ -O3 \
   Full_interface.cpp \
-  `/usr/local/bin/regina-engine-config --cflags --libs` \
+  `regina-engine-config --cflags --libs` \
   -I ../../src \
-  -I ../../../knothomology \
+  -I ../../utilities/ComputeHFKv2 \
   -o bundled-hfk-full-interface

@@ -34,8 +34,8 @@
 #include <vector>
 
 namespace ComputeHFKv2 {
-  #include "ComputeHFKv2/Diagrams.h"  // from ComputeHFKv2
-  #include "ComputeHFKv2/Diagrams.cpp"
+  #include "Diagrams.h"  // from ComputeHFKv2
+  #include "Diagrams.cpp"
 }
 #include "link/link.h"  // from Regina
 
@@ -71,7 +71,9 @@ class Knot_interface {
     global_minimum
   };
   
-  Knot_interface() { }
+  Knot_interface() :
+    compute_hfk_v2_morse_code_({}, -1)
+  { }
   
   void import_regina_signature(const std::string& knot_sig) {
     {  // swap in
@@ -89,6 +91,10 @@ class Knot_interface {
     compute_hfk_v2_morse_code_ = planar_diagram.GetSmallGirthMorseCode();
     auto morse_data = morse_code_to_data_(compute_hfk_v2_morse_code_);
     knot_diagram_.import_data(morse_data);
+  }
+  
+  void import_morse_events(const std::string& filename) {
+    knot_diagram_.import_csv(filename);
   }
   
   regina::Link regina_knot() const {
@@ -197,7 +203,7 @@ class Knot_interface {
   }  // planar_diagram_to_string_
   
   Morse_data_container morse_code_to_data_(const ComputeHFKv2::MorseCode& morse_code) const {
-    std::vector< int > raw_morse_data = morse_code.GetMorseList();
+    std::vector< int > raw_morse_data = const_cast< ComputeHFKv2::MorseCode& >(morse_code).GetMorseList();
     
     Morse_data_container morse_data;
     for (int i = 0; i < raw_morse_data.size() - 1; ++i) {

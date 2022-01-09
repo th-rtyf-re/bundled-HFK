@@ -31,7 +31,7 @@
 
 #include "Knot_interface.h"
 
-void load_and_compute(
+void load_and_compute_regina(
   std::ifstream& knots_csv,
   std::ofstream& knot_diagram_out,
   std::ofstream& planar_diagram_out,
@@ -39,6 +39,7 @@ void load_and_compute(
   int start = 1,
   int stop = -1
 ) {
+  --stop;
   while (--start) {
     --stop;
     knots_csv.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
@@ -131,7 +132,15 @@ int main(int argc, char* argv[]) {
   std::clock_t c_start = std::clock();
   std::ifstream in_file(argv[2]);
   
-  if (std::string(argv[1]) == "--planar-diagram" or std::string(argv[1]) == "-pd") {
+  if (std::string(argv[1]) == "--morse-event" or std::string(argv[1]) == "-me") {
+    std::cout << "[main] Reading morse events from " << argv[2] << "..." << std::endl;
+    Knot_interface interface;
+    interface.import_morse_events(argv[2]);
+    auto pp = interface.knot_Floer_homology();
+    std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
+  }
+  
+  else if (std::string(argv[1]) == "--planar-diagram" or std::string(argv[1]) == "-pd") {
     std::cout << "[main] Reading planar diagrams from " << argv[2] << "..." << std::endl;
     Knot_interface interface;
     
@@ -187,13 +196,13 @@ int main(int argc, char* argv[]) {
         << std::endl;
       
       in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      load_and_compute(in_file, knot_diagram_out, planar_diagram_out, polynomial_out, start, stop);
+      load_and_compute_regina(in_file, knot_diagram_out, planar_diagram_out, polynomial_out, start, stop);
     }
     else {
       std::cout << "[main] Reading Regina signatures from " << argv[2] << "..." << std::endl;
       /* get rid of first line */
       in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      load_and_compute(in_file, knot_diagram_out, planar_diagram_out, polynomial_out);
+      load_and_compute_regina(in_file, knot_diagram_out, planar_diagram_out, polynomial_out);
     }
     
     knot_diagram_out.close();
