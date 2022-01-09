@@ -87,7 +87,7 @@ each knot in the file. You can specify a start point, as well as an end point.
 The start is inclusive and the end is exclusive.
 
 ### Visualize the example
-By default, the macro `BUNDLE_HFK_DRAW_` is defined in `csv_to_hfk.cpp`. If
+By default, the macro `BUNDLE_HFK_DRAW_` is defined in `Full_interface.cpp`. If
 this is the case, after executing the code, two files will be created:
 `differential_suffix_forest.tex` and `knot_diagrams.tex`. Compile the `LaTeX`
 file `drawings.tex` (provided the considered knots are not too big) to
