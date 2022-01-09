@@ -35,7 +35,6 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-// For default template values
 #include "Differential_suffix_forest_options.h"
 #include "Arc_container.h"
 

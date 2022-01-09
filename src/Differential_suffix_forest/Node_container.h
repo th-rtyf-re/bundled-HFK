@@ -92,9 +92,7 @@ class Node_container {
     }
   };
   
-  /* A sort-of iterator for parents.
-   * 
-   * This should satisfy LegacyIterator requirement.
+  /* An iterator for parents: this satisfies C++'s LegacyIterator requirements.
    */
   class Ascender {
    public:
@@ -104,19 +102,19 @@ class Node_container {
       nc_(nc)
     { }
     
-    /* "indirection" */
+    /* indirection: return the index of the referenced node. */
     int operator*() const {
       return node_;
     }
     
-    /* "increment" */
+    /* increment: ascender now references the parent of the previous node. */
     Ascender& operator++() {
       to_node_ = nc_.to_parent(node_);
       node_ -= to_node_;
       return *this;
     }
     
-    /* " != end " */
+    /* " != end ": returns true if and only if referenced node has a parent. */
     bool valid() const {
       return to_node_ != 0;
     }
@@ -208,8 +206,7 @@ class Node_container {
     return (--root_idems_.upper_bound(i))->first;
   }
   
-  /* Distance from a node to its root. Only used internally when declaring
-   * arcs.
+  /* Distance from a node to its root. Only used when declaring arcs
    */
   int to_root(int i) const {
     return i - root(i);
@@ -247,11 +244,13 @@ class Node_container {
   /* Add subtree to a late node: make old subroot a child of the new subroot.
    * We do not update the new subroot (in particular, descendants_size).
    */
-  int push_back_subtree(const int new_subroot,
-                         const Weights new_weights,
-                         const std::string new_label,
-                         const int old_subroot,
-                         const Node_container& old_nodes) {
+  int push_back_subtree(
+    const int new_subroot,
+    const Weights new_weights,
+    const std::string new_label,
+    const int old_subroot,
+    const Node_container& old_nodes
+  ) {
     int new_child = nodes_.size();
     int subtree_size = old_nodes.descendants_size(old_subroot);
     nodes_.emplace_back(new_child - new_subroot, 1, subtree_size, new_weights
@@ -392,9 +391,11 @@ class Node_container {
     }
     else {
       Polynomial poly = 0;
-      for (int child = descendants_begin(node);
-           child != descendants_end(node);
-           child += descendants_size(child)) {
+      for (
+        int child = descendants_begin(node);
+        child != descendants_end(node);
+        child += descendants_size(child)
+      ) {
         Polynomial child_poly = poincare_polynomial_at_< Polynomial >(child);
         child_poly *= weights(node);
         poly += child_poly;
@@ -433,14 +434,14 @@ class Node_container {
     for (auto value_pair : root_idems_) {
       Grid_point_& grid_point = grid[0][i];
       write_file << "\\node ("
-                   << grid_point.first
-                   << ") at ("
-                   << grid_point.second
-                   << ","
-                   << 0
-                   << ") {" << value_pair.first << "\\nodeLabel{"
-                   << value_pair.second
-                   << "}};" << std::endl;
+                 << grid_point.first
+                 << ") at ("
+                 << grid_point.second
+                 << ","
+                 << 0
+                 << ") {" << value_pair.first << "\\nodeLabel{"
+                 << value_pair.second
+                 << "}};" << std::endl;
       ++i;
     }
     
