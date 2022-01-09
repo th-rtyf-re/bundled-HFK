@@ -1,4 +1,4 @@
-#define DRAW  // define for LaTeX-related functionality
+//#define DRAW  // define for LaTeX-related functionality
 #define VERBOSE  // define for more verbose console
 
 #include <ctime>
@@ -7,14 +7,19 @@
 #include <limits>  // numeric_limits
 #include <string>
 
-#include "test_knot_interface.h"
+#include "Knot_interface.h"
 
 void aux(std::ifstream& knots_csv,
          std::ofstream& knot_diagram_out,
          std::ofstream& planar_diagram_out,
          std::ofstream& polynomial_out,
-         bool read_one_only = false) {
-  for (std::string line; std::getline(knots_csv, line, '\n'); ) {
+         int start = 1,
+         int stop = -1) {
+  while (--start) {
+    --stop;
+    knots_csv.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+  }
+  for (std::string line; std::getline(knots_csv, line, '\n');) {
     int i1 = line.find(',');
     int i2 = line.find(',', i1 + 1);
     std::string name = line.substr(0, i1);
@@ -33,11 +38,10 @@ void aux(std::ifstream& knots_csv,
 #endif  // VERBOSE
     
     auto pp = interface.knot_Floer_homology();
-    std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp.to_string() << std::endl;
+    std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
     
-    //polynomial_out << name << " & " << pp.to_string() << " \\\\" << std::endl;
-    polynomial_out << pp.to_string() << std::endl;
-    if (read_one_only) { return; }
+    polynomial_out << pp << std::endl;
+    if (!--stop) { return; }
   }
 }
 
@@ -45,7 +49,7 @@ int main(int argc, char* argv[]) {
   if (argc <= 2) {
     std::cout
       << "arguments: "
-      << "-rs/--regina-signature [csv file] [knot number], "
+      << "-rs/--regina-signature [csv file] [knot number/start] [knot end], "
       << "-pd/--planar-diagram [txt file], "
       << "-me/--morse-events [csv file]."
       << std::endl;
@@ -56,6 +60,7 @@ int main(int argc, char* argv[]) {
   std::ifstream in_file(argv[2]);
   
   if (std::string(argv[1]) == "--planar-diagram" or std::string(argv[1]) == "-pd") {
+    std::cout << "[main] Reading planar diagrams from " << argv[2] << "..." << std::endl;
     Knot_interface interface;
     
     std::vector< std::string > pd_strings;
@@ -86,6 +91,7 @@ int main(int argc, char* argv[]) {
     auto pp = interface.knot_Floer_homology();
     std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
   }
+  
   else if (std::string(argv[1]) == "--regina-signature" or std::string(argv[1]) == "-rs") {
     std::ofstream knot_diagram_out("knot_diagrams.tex");
     std::ofstream planar_diagram_out("planar_diagrams.txt");
@@ -93,20 +99,29 @@ int main(int argc, char* argv[]) {
     
     /* A knot number is provided. */
     if (argc >= 4) {
-      int i = std::stoi(argv[3]);
-      in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      while (--i) {
-        in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+      int start = std::stoi(argv[3]);
+      int stop = start;
+      if (argc >= 5) {
+        stop = std::stoi(argv[4]);
       }
-      aux(in_file, knot_diagram_out, planar_diagram_out, polynomial_out, true);
+      std::cout
+        << "[main] Reading Regina signatures from "
+        << argv[2]
+        << " from "
+        << start
+        << " to "
+        << stop
+        << "..."
+        << std::endl;
+      
+      in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+      aux(in_file, knot_diagram_out, planar_diagram_out, polynomial_out, start, stop);
     }
     else {
-      for (int i = 1; i < argc; ++i) {
-        std::cout << "[main] Reading " << argv[2] << "..." << std::endl;
-        /* get rid of first line */
-        in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-        aux(in_file, knot_diagram_out, planar_diagram_out, polynomial_out);
-      }
+      std::cout << "[main] Reading Regina signatures from " << argv[2] << "..." << std::endl;
+      /* get rid of first line */
+      in_file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+      aux(in_file, knot_diagram_out, planar_diagram_out, polynomial_out);
     }
     
     knot_diagram_out.close();
