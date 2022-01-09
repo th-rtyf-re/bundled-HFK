@@ -10,7 +10,13 @@
 #include <boost/type_erasure/member.hpp>  // BOOST_TYPE_ERASURE_MEMBER
 #include <boost/type_erasure/operators.hpp>  // ostreamable
 
-/* Some metaprogramming nonsense to define Morse events.
+/* Some metaprogramming nonsense to define a Morse event concept.
+ * 
+ * This gives the user the possibility of creating their own Morse events and
+ * using them to compute bordered knot Floer homology.
+ * 
+ * A Morse event is templated by a D-module class and a class of Morse event
+ * options.
  */
 
 BOOST_TYPE_ERASURE_MEMBER(lower_matchings)

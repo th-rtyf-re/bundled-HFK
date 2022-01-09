@@ -14,7 +14,13 @@
 #include "Morse_event/Morse_event.h"
 #include "Morse_event/Morse_event_options.h"
 
-/* None of this is optimized, because its cost is minimal in the big picture.
+/* Knot diagram.
+ * 
+ * This class stores the information of a knot through a knot diagram, and can
+ * compute its knot Floer homology.
+ * 
+ * The knot diagram is a list of Morse events, which are determined by the user
+ * via the class template.
  */
 template< template< class, class > class ...Morse_events >
 class Knot_diagram {
@@ -22,6 +28,11 @@ class Knot_diagram {
   using D_module_default = Forest<>;
   using Morse_event_options = Morse_event_options_int;
   using Parameter_type = typename Morse_event_options::Parameter_type;
+  
+  /* A way to import Morse events. The integer is the index of the Morse event
+   * in the template pack, and the vector of parameters are the Morse event
+   * constructor arguments.
+   */
   using Morse_data_container =
     std::vector< std::pair< int, std::vector< Parameter_type > > >;
   
@@ -33,9 +44,11 @@ class Knot_diagram {
   }
   
   /* Import from CSV.
-   * Import a Morse event list from a CSV file given by filename.
+   * Import a Morse event list from a CSV file given by filename. Currently, we
+   * assume that the lines of the file are of the form
    * 
-   * event, position (different from current version)
+   *      event, position.
+   * 
    */
   template< class Filename_type >
   void import_csv(const Filename_type& filename) {
@@ -137,8 +150,7 @@ class Knot_diagram {
   }
   
  private:
-  
-  /* All the private methods depend on the choice of D-module. In order to
+  /* All the private methods depend on a choice of D-module. In order to
    * make things hopefully more readable, I've put all these methods as static
    * methods in a private struct Detail_, templated by D_module.
    */
@@ -157,9 +169,11 @@ class Knot_diagram {
       const auto algebras = get_bordered_algebras(morse_events);
       
       for (int i = 0; i != morse_events.size(); ++i) {
-        da_bimodules.emplace_back(morse_events[i],
-                                  algebras[i],
-                                  algebras[i + 1]);
+        da_bimodules.emplace_back(
+          morse_events[i],
+          algebras[i],
+          algebras[i + 1]
+        );
       }
       
       return da_bimodules;
@@ -194,9 +208,10 @@ class Knot_diagram {
       
       // Calculate orientations bottom-up
       for (int i = morse_events.size() - 1; i >= 0; --i) {
-        algebras[i].orientations =
-          morse_events[i].upper_orientations(
-            algebras[i + 1].orientations, algebras[i].matchings);
+        algebras[i].orientations = morse_events[i].upper_orientations(
+          algebras[i + 1].orientations,
+          algebras[i].matchings
+        );
       }
       return algebras;
     }
@@ -209,7 +224,9 @@ class Knot_diagram {
     }
     
    private:
-    /* I need to add a dummy class template because I can't partially
+    /* Template-recursive function creating an instance of the i^th Morse event
+     * 
+     * I need to add a dummy class template because I can't partially
      * specialize for the initialization otherwise.
      * The other possibility is requiring at least one Morse event, but
      * I want to leave the possibility of having no Morse events.
@@ -235,9 +252,10 @@ class Knot_diagram {
     static Morse_event instance_aux_(const int, const std::vector< Parameter_type >&) {
       return Morse_event();
     }
-  };
+  };  // Detail_
   
  public:
+#ifdef BUNDLED_HFK_DRAW_
   /* TeXify */
   void TeXify(std::ofstream& write_file) const {
     std::cout << "[kd] Drawing knot..." << std::flush;
@@ -270,6 +288,7 @@ class Knot_diagram {
     }
     return margins;
   }
+#endif  // BUNDLED_HFK_DRAW_
   
   Morse_data_container morse_data_;
   

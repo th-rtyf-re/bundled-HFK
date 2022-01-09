@@ -13,6 +13,11 @@
 #include "Positive_crossing.h"
 #include "Math_tools/Reverse_D_module.h"
 
+/* Morse event for negative crossings.
+ * 
+ * This class simulates a tensoring a positive crossing with the dual of the
+ * old D-module.
+ */
 template< class D_module, class Morse_event_options >
 class Negative_crossing {
  public:

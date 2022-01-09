@@ -11,7 +11,10 @@
 #include "Differential_suffix_forest_options.h"
 #include "Node_container.h"
 
-/* Operations on arcs
+/* Arc container.
+ * 
+ * Arcs correspond to coefficient bundles (see explanation at
+ * Differential_suffix_forest).
  * 
  * Arcs are stored in a boost multi-index container, indexed by source and
  * target nodes. Thus, we can iterate over arcs in order of source or target.
@@ -191,7 +194,7 @@ class Arc_container : protected Node_container< Forest_options > {
   /* Overloaded version where we avoid a specified arc.
    */
   template< class Tag >
-  std::vector< Arc_reference > arcs_at_node_(int node, const Arc& avoiding) const {
+  std::vector< Arc_reference > get_arcs_at_node_(int node, const Arc& avoiding) const {
     const auto& arcs_view = arcs_.template get< Tag >();
     auto arc_begin = arcs_view.lower_bound(node);
     auto arc_end = arcs_view.lower_bound(descendants_end(node));

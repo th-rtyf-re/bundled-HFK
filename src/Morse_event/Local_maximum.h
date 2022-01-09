@@ -9,7 +9,7 @@
 #include <iostream>
 #endif  // BUNDLED_HFK_VERBOSE_
 
-/* DA-bimodule for a local maximum.
+/* Morse event for a local maximum.
  * 
  * Adapted from ComputeHFKv2/Max.cpp
  */

@@ -5,8 +5,10 @@
 #include <iostream>
 #endif  // BUNDLED_HFK_VERBOSE_
 
-/* The user defines classes that satisfy the Morse event concept, but it's
- * easier for Knot diagram to reason with DA bimodules.
+/* DA-bimodule.
+ * 
+ * The user defines classes that satisfy the Morse event concept, but it's
+ * easier for Knot_diagrams to reason with DA bimodules.
  * These are constructed when we call the knot Floer homology function.
  */
 template< class Morse_event >

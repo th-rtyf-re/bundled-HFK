@@ -9,6 +9,10 @@
 #include <iostream>
 #endif  // BUNDLED_HFK_VERBOSE_
 
+/* Morse event for a local minimum.
+ * 
+ * Adapted from ComputeHFKv2/Min.cpp
+ */
 template< class D_module, class Morse_event_options >
 class Local_minimum {
  public:

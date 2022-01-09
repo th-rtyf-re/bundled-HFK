@@ -1,7 +1,10 @@
 #ifndef D_MODULE_REVERSE_VIEW_
 #define D_MODULE_REVERSE_VIEW_
 
-/* Reverse view of a D-module. Should also be a model of the D-module concept
+/* Reverse view of a D-module.
+ * 
+ * This class satisfies the D-module concept, and in fact is probably the
+ * reference for the concept.
  */
 template< class D_module >
 class Reverse_D_module {

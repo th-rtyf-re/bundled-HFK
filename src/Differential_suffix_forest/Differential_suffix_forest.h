@@ -19,16 +19,25 @@
 
 /* Differential suffix forest.
  * 
+ * Mathematically speaking, this is a D-module up to homotopy equivalence. We
+ * assume that we are working over F_2, the field with two elements.
  * 
- * Mathematically speaking, this is a D-module up to homotopy equivalence.
+ * Hopefully this is explained in more detail somewhere else, but the idea is
+ * to represent D-modules up to homotopy equivalence as a set of generator
+ * bundles and a set of coefficient bundles.
+ * Recall that generators of D-modules associated to upper knot diagrams can
+ * be represented as words, corresponding to the types of Morse events
+ * (crossings, local extrema), along with an idempotent. The generator bundles
+ * group generators by suffixes and idempotents. To define coefficient bundles,
+ * consider the structure morphism of the D-module, represented as a matrix
+ * with coefficients in the bordered algebra. The coefficient bundles group
+ * coefficients by algebra value and by generator suffix.
  * 
  * This class also contains the main interface with DA-bimodules and Morse
  * events.
  */
 template< class Forest_options = Forest_options_default_short >
-class Forest :
-  private Arc_container< Forest_options >
-{
+class Forest : private Arc_container< Forest_options > {
  public:
   using Idem = typename Forest_options::Idem;
   using Gen_type = typename Forest_options::Gen_type;
@@ -37,8 +46,9 @@ class Forest :
   using Weights = typename Forest_options::Weights;
   
   using Arc_container = Arc_container< Forest_options >;
-  
   using Node_container = typename Arc_container::Node_container;
+  
+  /* Member types inherited from Node_container and Arc_container */
   using typename Node_container::Root_handle;
   using typename Node_container::Root_handle_container;
   
@@ -49,7 +59,7 @@ class Forest :
   using Source = typename Arc_container::Source;
   using Target = typename Arc_container::Target;
   
-  /* Aliases for external usage */
+  /* Type aliases to match the D-module concept */
   using Gen_bundle_handle_container = Root_handle_container;
   using Gen_bundle_handle = Root_handle;
   using Coef_bundle = Arc;
@@ -57,8 +67,7 @@ class Forest :
   using Coef_bundle_iterator = Arc_iterator;
   using Coef_bundle_reference = Arc_reference;
   
-  /* Inherited member functions from Node_container and Arc_container */
-  
+  /* Member functions inherited from Node_container and Arc_container */
   using Node_container::idem;
   using Node_container::poincare_polynomial;
   
@@ -101,7 +110,14 @@ class Forest :
     lock_coefficients();
   }
   
-  /* Operations on nodes */
+  /* Node creation
+   * 
+   * Nodes have two states: unlocked and locked. In the unlocked state, we can
+   * add generator bundles as declared subtrees, with an associated lower
+   * idempotent. These are stored in declared_subtrees_.
+   * In the locked state, nodes of the differential suffix forest are stored
+   * in the underlying Node_container.
+   */
   
   /* Declare subtree to a specified idempotent.
    * Pre-condition: subtrees unlocked.
@@ -114,6 +130,7 @@ class Forest :
     declared_subtrees_[new_idem].emplace_back(new_type, root_handle.first);
   }
   
+  /* Overloaded version with no subtree */
   void add_gen_bundle(Idem new_idem) {
     declared_subtrees_[new_idem];
   }
@@ -160,24 +177,32 @@ class Forest :
   
   /* Arc creation
    * 
-   * Arcs are the most annoying object to store.
-   * 
-   * Current approach: add arcs in a multi-indexed set that can sort
-   * by source and by target.
-   * 
-   * When checking modulo 2 stuff, take arc, and scan forwards until the source
-   * is greater or equal to the after-children index.
+   * Arcs have two states: unlocked and locked. In the unlocked state, we can
+   * add coefficient bundles. In the locked state, arcs are stored in the
+   * underlying Arc_container.
    */
   
-  /* I don't know if I want this function. There are currently no methods that
-   * take an algebra element as argument. Any such candidate methods can
-   * also be written for coefficients.
+  /* Generate an algebra value from arguments.
    */
   template< class ...Args >
   Alg_el alg_el(Args&&... args) const {
     return Alg_el(args...);
   }
   
+  /* Add a coefficient bundle as in the following drawing:
+   * 
+   *             back
+   *            marking
+   *          * <------ * <------- ...
+   *          |         |
+   *     new  |         |     ||  old arc in
+   *    value |         |     \/  old forest
+   *          v         v
+   *          * <------ * <------- ...
+   *             front
+   *            marking
+   * 
+   */
   void add_coef_bundle(
     const Alg_el& new_value,
     const Gen_type back_marking,
@@ -193,6 +218,18 @@ class Forest :
     declared_arcs_.emplace_back(source, target, new_value);
   }
   
+  /* Overloaded version without old forest, as in the following drawing:
+   * 
+   *            back
+   *           marking
+   *         * <------ * old idem
+   *         |        /
+   *    new  |      / front
+   *   value |    /  marking
+   *         v  /
+   *         * <
+   * 
+   */
   void add_coef_bundle(
     const Alg_el& new_value,
     const Gen_type back_marking,
@@ -205,6 +242,9 @@ class Forest :
     declared_arcs_.emplace_back(source, target, new_value);
   }
   
+  /* Lock coefficients and ensure that each coefficient is only accounted for
+   * once.
+   */
   void lock_coefficients() {
     this->insert_arcs(declared_arcs_.begin(), declared_arcs_.end());
     this->modulo_2();
@@ -222,12 +262,11 @@ class Forest :
     bool reduction = true;
     int counter = 0;
     while (reduction) {
-//    std::cout << "[f] " << *this << std::endl;
       reduction = false;
       for (auto arc_it = this->arcs_begin(); arc_it != this->arcs_end(); ) {
         if (arc_it->value.is_invertible()) {
           reduction = true;
-          std::cout << "[f] invertible arc " << *arc_it << std::endl;
+          std::cout << "[f] invertible arc " << *arc_it << "\n";
           arc_it = contract_(arc_it);
         }
         else {
@@ -313,9 +352,24 @@ class Forest :
     this->template raise_arcs_below_node< Target >(critical_arc.target);
   }
   
-/* Check if the a zig-zag concatenation is possible, assuming that the back
-   * and front arcs are compatible with the reverse arc, and then concatenate
-   * if possible and add to a stream of new arcs.
+  /* Check if the a zig-zag concatenation is possible and add to a stream of
+   * new arcs.
+   * 
+   * Pre-conditions:
+   * - back and front arcs are compatible with reverse arc
+   * - back and front arcs are higher than reverse arc
+   * 
+   * Visual aid: case where the front arc is higher than the back arc.
+   * 
+   *                        front                     zig-zag
+   *     *      *         * ----> *               * --- ... ---> *
+   *     | back |         |       |               |              |
+   *     * ---> *         |       |               |              |
+   *     |      | reverse |       |               |              |
+   *     |      * <------ *       |      ~~>      |     ...      |
+   *     |      |         |       |               |              |
+   *     |      |         |       |               |              |
+   *     *      *         *       *               *              *
    * 
    * This will be used in homotopy reduction.
    */
@@ -327,23 +381,10 @@ class Forest :
   ) const {
     int source = back_arc.source;
     int target = front_arc.target;
-    
     int back_diff = back_arc.target - reverse_arc.target;
-//     if (back_diff < 0) {  // not needed if we raise arcs to critical one
-//       source -= back_diff;
-//       back_diff = 0;
-//     }
-//     
     int front_diff = front_arc.source - reverse_arc.source;
-//     if (front_diff < 0) {
-//       target -= front_diff;
-//       front_diff = 0;
-//     }
     
-    // At this point, the back and front arcs are at least as high as the
-    // reverse arc.
-    
-    if (
+    if (  // front is higher than back
       back_diff <= front_diff
       and front_diff < back_diff + this->descendants_size(back_arc.target)
     ) {
@@ -353,7 +394,7 @@ class Forest :
       source += front_diff - back_diff;
       arc_stream.emplace_back(source, target, product);
     }
-    else if (
+    else if (  // back is higher than front
       front_diff <= back_diff
       and back_diff < front_diff + this->descendants_size(front_arc.source)
     ) {
@@ -383,8 +424,8 @@ class Forest :
     return node;
   }
   
-  /* Mark all nodes above and including the given node. Erase all arcs to and
-   * from above the given node.
+  /* Erase all nodes and all arcs to and from above the given node. Return the
+   * iterator to the first arc whose source is after the last deleted node.
    */
   Arc_iterator erase_subtree_(int node) {
     this->erase_subtree_nodes(node);
@@ -420,7 +461,9 @@ class Forest :
 #endif  // BUNDLED_HFK_DRAW_
   
  private:
-  /* Auxiliary data structures */
+  /* Auxiliary data structures. The main data structures containing the nodes
+   * and arcs are in the corresponding inherited classes.
+   */
   std::map< Idem, std::vector< std::pair< Gen_type, int > > > declared_subtrees_;
   std::vector< Arc > declared_arcs_;
   std::map< std::pair< Idem, Gen_type >, int > first_layer_nodes_;

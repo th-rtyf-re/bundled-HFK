@@ -7,7 +7,10 @@
 
 #include "Differential_suffix_forest_options.h"
 
-/* Nodes and roots.
+/* Node container
+ * 
+ * These are the nodes that make up the forest of a differential suffix forest.
+ * In particular, we keep track of the roots of the forest.
  * 
  * Mathematically, this is a (bundled) left module over a bordered algebra.
  */

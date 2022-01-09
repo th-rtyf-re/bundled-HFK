@@ -9,6 +9,8 @@
 #include <iostream>
 #endif  // BUNDLED_HFK_VERBOSE_
 
+/* Morse event for a global minimum.
+ */
 template< class D_module, class Morse_event_options >
 class Global_minimum {
  public:
