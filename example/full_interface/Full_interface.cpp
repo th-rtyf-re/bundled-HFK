@@ -76,8 +76,8 @@ void print_help() {
     << "  --gnu [w] [c]\n"
     << "  -h, --help\n"
     << "  -me, --morse-events <csv file>\n"
-    << "  -pd, --planar-diagram <txt file>\n"
-    << "  -rs, --regina-signature <csv file> [<knot number/start>] [<knot end>]\n";
+    << "  -pd, --planar-diagram <txt file> [<start index>] [<end index>]\n"
+    << "  -rs, --regina-signature <csv file> [<start index>] [<end index>]\n";
 }
 
 
@@ -141,13 +141,18 @@ int main(int argc, char* argv[]) {
   }
   
   else if (std::string(argv[1]) == "--planar-diagram" or std::string(argv[1]) == "-pd") {
-    std::cout << "[main] Reading planar diagrams from " << argv[2] << "..." << std::endl;
+    std::cout << "[main] Reading " << argv[2] << "..." << std::endl;
     Knot_interface interface;
     
+    /* Prepare list of planar diagram strings.
+     * 
+     * This part is taken from ComputeHFKv2/Main.cpp
+     */
     std::vector< std::string > pd_strings;
     std::string planar_diagram_string;
     char ch;
     
+    // Ignore everything until first planar diagram
     while(in_file >> ch) {
       if(ch == 'P') {
         in_file >> ch;
@@ -168,9 +173,29 @@ int main(int argc, char* argv[]) {
     }
     pd_strings.push_back(planar_diagram_string);
     
-    interface.import_planar_diagram(pd_strings[0]);
-    auto pp = interface.knot_Floer_homology();
-    std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
+    int start = 0;
+    int stop = pd_strings.size();
+    
+    if (argc >= 4) {
+      start = std::stoi(argv[3]);
+    }
+    if (argc >= 5) {
+      stop = std::stoi(argv[4]);
+    }
+    
+    std::cout
+      << "[main] Reading planar diagrams #"
+      << (start + 1)
+      << " to #"
+      << stop
+      << "...\n";
+    
+    for (int i = start; i < stop; ++i) {
+      std::cout << "[main] Reading planar diagram #" << (i + 1) << "..." << std::endl;
+      interface.import_planar_diagram(pd_strings[i]);
+      auto pp = interface.knot_Floer_homology();
+      std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
+    }
   }
   
   else if (std::string(argv[1]) == "--regina-signature" or std::string(argv[1]) == "-rs") {

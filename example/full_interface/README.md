@@ -25,8 +25,8 @@ The compiled file `bundled-hfk-full-interface` can run with several options.
 Here is the options list:
 ```
 -me, --morse-events <csv file>
--pd, --planar-diagram <txt file>
--rs, --regina-signature <csv file> [<knot number/start>] [<knot end>]
+-pd, --planar-diagram <txt file> [<start index>] [<end index>]
+-rs, --regina-signature <csv file> [<start index>] [<end index>]
 ```
 
 ### Morse events
@@ -68,13 +68,18 @@ should produce the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 
 ### Planar diagram
 
-The option `-pd` takes one argument, a text file containing a planar diagram
-as described in Osváth and Szabó's program
+The option `-pd` takes one argument, a text file containing one or more planar
+diagrams as described in Osváth and Szabó's program
 [`ComputeHFKv2`](https://web.math.princeton.edu/~szabo/HFKcalc.html). See there
 for a description of the syntax.
 
 The download link on that page also provides examples of planar diagram text
 files, which you can use.
+
+Without extra arguments, the program will compute the knot Floer homology of
+each knot in the file. You can specify a start point, as well as an end point.
+The start is inclusive and the end is exclusive. The knots are numbered
+starting from 1 (and not 0).
 
 ### Regina signature
 
@@ -84,7 +89,8 @@ You can download the knot tables and run the program on the files.
 
 Without extra arguments, the program will compute the knot Floer homology of
 each knot in the file. You can specify a start point, as well as an end point.
-The start is inclusive and the end is exclusive.
+The start is inclusive and the end is exclusive. The knots are numbered
+starting from 1 (and not 0).
 
 ### Visualize the example
 By default, the macro `BUNDLE_HFK_DRAW_` is defined in `Full_interface.cpp`. If
