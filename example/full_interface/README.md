@@ -62,7 +62,7 @@ For example,
 represents a right-handed trefoil knot. It can be found at
 `../../data/csv/right_handed_trefoil.csv`. Thus, executing
 ```
-./bundled-hfk-example -me ../../data/csv/right_handed_trefoil.csv
+./bundled-hfk-full-interface -me ../../data/csv/right_handed_trefoil.csv
 ```
 should produce the knot Floer homology `t^{-1}q^{-2} + q^{-1} + t`.
 
