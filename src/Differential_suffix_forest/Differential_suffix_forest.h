@@ -58,8 +58,9 @@
  * events.
  */
 template< class Forest_options = Forest_options_default_short >
-class Forest : private Arc_container< Forest_options > {
+class Differential_suffix_forest : private Arc_container< Forest_options > {
  public:
+  using Forest = Differential_suffix_forest;  // alias
   using Idem = typename Forest_options::Idem;
   using Gen_type = typename Forest_options::Gen_type;
   using Bordered_algebra = typename Forest_options::Bordered_algebra;

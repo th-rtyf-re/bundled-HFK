@@ -47,7 +47,7 @@
 template< template< class, class > class ...Morse_events >
 class Knot_diagram {
  public:
-  using D_module_default = Forest<>;
+  using D_module_default = Differential_suffix_forest<>;
   using Morse_event_options = Morse_event_options_int;
   using Parameter_type = typename Morse_event_options::Parameter_type;
   
