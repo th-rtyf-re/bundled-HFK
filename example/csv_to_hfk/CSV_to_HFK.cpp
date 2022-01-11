@@ -1,3 +1,25 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
+ *                                                                           *
+ *  Bundled HFK - a knot Floer homology calculator                           *
+ *                                                                           *
+ *  Copyright (C) 2021-2022  Isaac Ren                                       *
+ *  For further details, contact Isaac Ren (gopi3.1415@gmail.com).           *
+ *                                                                           *
+ *  This program is free software: you can redistribute it and/or modify     *
+ *  it under the terms of the GNU General Public License as published by     *
+ *  the Free Software Foundation, either version 3 of the License, or        *
+ *  (at your option) any later version.                                      *
+ *                                                                           *
+ *  This program is distributed in the hope that it will be useful,          *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
+ *  GNU General Public License for more details.                             *
+ *                                                                           *
+ *  You should have received a copy of the GNU General Public License        *
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.   *
+ *                                                                           *
+\* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #define BUNDLED_HFK_DRAW_  // define for LaTeX-related functionality
 //#define BUNDLED_HFK_VERBOSE_  // define for more verbose console
 
@@ -14,6 +36,7 @@
 #include "Morse_event/Global_minimum.h"
 
 int main(int argc, char* argv[]) {
+  // Template the Knot diagram class with the Morse events we allow in CSV files
   using Knot_diagram = Knot_diagram<
     Positive_crossing,
     Negative_crossing,
@@ -22,11 +45,11 @@ int main(int argc, char* argv[]) {
     Global_minimum
   >;
   
+  // Program takes filename as argument
   if (argc <= 1) {
     std::cout << "[main] No file given! Exiting..." << std::endl;
     return 0;
   }
-  
   std::cout << "[main] Reading CSV file " << argv[1] << "..." << std::endl;
   
   // Set log file, where developer messages are sent.
@@ -37,13 +60,16 @@ int main(int argc, char* argv[]) {
   std::ofstream knot_diagram_out("knot_diagrams.tex");
   std::ofstream polynomial_out("poincare_polynomials.tex");
   
+  // Import CSV file to knot diagram
   std::ifstream in_file(argv[1]);
   Knot_diagram knot_diagram;
   knot_diagram.import_csv(in_file);
   
+  // Compute knot Floer homology as a Poincaré polynomial, choosing the
+  // underlying D-module class based on the number of strands in the diagram:
+  // this is done because smaller knot diagrams can represent idempotents using
+  // integers.
   Poincare_polynomial pp;
-  
-  // Choose D-module class based on number of strands
   if (knot_diagram.max_n_strands() <= 31) {
     pp = knot_diagram.knot_Floer_homology<
       Poincare_polynomial,
