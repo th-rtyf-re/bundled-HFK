@@ -32,7 +32,14 @@
 #include <boost/type_erasure/member.hpp>  // BOOST_TYPE_ERASURE_MEMBER
 #include <boost/type_erasure/operators.hpp>  // ostreamable
 
-/* Some metaprogramming nonsense to define a Morse event concept.
+/* Morse event.
+ * 
+ * Some metaprogramming nonsense to define a Morse event concept. Classes
+ * satisfying this concept:
+ * - can be constructed from a list of parameters,
+ * - have certain methods related to the topology of the associated knot slice,
+ * - have certain methods related to the DA-bimodule of the associated knot
+ *   slice.
  * 
  * This gives the user the possibility of creating their own Morse events and
  * using them to compute bordered knot Floer homology.
@@ -112,7 +119,6 @@ struct Algebraic_methods :
     >
   >
 { };
-
 
 template< class D_module, class Morse_event_options >
 using Morse_event_base = boost::type_erasure::any<

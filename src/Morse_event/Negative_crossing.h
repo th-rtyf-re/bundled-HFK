@@ -37,8 +37,10 @@
 
 /* Morse event for negative crossings.
  * 
- * This class simulates a tensoring a positive crossing with the dual of the
- * old D-module.
+ * The DA-bimodule of a negative crossing is the dual of the corresponding
+ * positive crossing. Therefore this class just calls the positive crossing
+ * class on a reverse view of the old D-module, and then reverses back the new
+ * D-module.
  */
 template< class D_module, class Morse_event_options >
 class Negative_crossing {

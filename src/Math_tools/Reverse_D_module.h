@@ -25,6 +25,10 @@
 
 /* Reverse view of a D-module.
  * 
+ * Reverses the directions of all arcs.
+ * 
+ * Mathematically speaking, this gives the dual of a D-module.
+ * 
  * This class satisfies the D-module concept, and in fact is probably the
  * reference for the concept.
  */

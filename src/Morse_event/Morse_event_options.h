@@ -25,6 +25,11 @@
 
 #include <boost/any.hpp>
 
+/* Note: I encountered some problems when using boost::any, so I've left the
+ * possibility of restricting the parameters used to construct Morse events
+ * to integers.
+ */
+
 struct Morse_event_options_default {
   using Parameter_type = boost::any;
   
