@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
   // this is done because smaller knot diagrams can represent idempotents using
   // integers.
   Poincare_polynomial pp;
-  if (knot_diagram.max_n_strands() <= 30) {
+  if (knot_diagram.max_n_strands() <= 31) {
     pp = knot_diagram.knot_Floer_homology<
       Poincare_polynomial,
       Differential_suffix_forest< Forest_options_default_short >

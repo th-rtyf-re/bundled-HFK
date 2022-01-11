@@ -115,7 +115,7 @@ class Knot_interface {
   }
   
   Poincare_polynomial knot_Floer_homology() const {
-    if (knot_diagram_.max_n_strands() <= 30) {
+    if (knot_diagram_.max_n_strands() <= 31) {
       return knot_diagram_.knot_Floer_homology< Poincare_polynomial, Differential_suffix_forest< Forest_options_default_short > >();
     }
     else {
