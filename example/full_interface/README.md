@@ -93,10 +93,10 @@ The start is inclusive and the end is exclusive. The knots are numbered
 starting from 1 (and not 0).
 
 ### Visualize the example
-By default, the macro `BUNDLE_HFK_DRAW_` is defined in `Full_interface.cpp`. If
-this is the case, after executing the code, two files will be created:
-`differential_suffix_forest.tex` and `knot_diagrams.tex`. Compile the `LaTeX`
-file `drawings.tex` (provided the considered knots are not too big) to
-visualize all the considered knots, as well as the differential suffix forest
-at each step of the calculation for the last knot. Note that this may reach
-`LaTeX`'s limits even for relatively small knots, e.g. with 10 crossings.
+If the macro `BUNDLE_HFK_DRAW_` is defined in `Full_interface.cpp`, then the
+program creates two files: `differential_suffix_forest.tex` and
+`knot_diagrams.tex`. Compile the `LaTeX` file `drawings.tex` (provided the
+considered knots are not too big) to visualize all the considered knots, as
+well as the differential suffix forest at each step of the calculation for the
+last knot. Note that this may reach `LaTeX`'s limits even for relatively small
+knots, e.g. with 10 crossings.

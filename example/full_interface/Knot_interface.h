@@ -93,8 +93,8 @@ class Knot_interface {
     knot_diagram_.import_data(morse_data);
   }
   
-  void import_morse_events(const std::string& filename) {
-    knot_diagram_.import_csv(filename);
+  void import_morse_events(std::ifstream& in_file) {
+    knot_diagram_.import_csv(in_file);
   }
   
   regina::Link regina_knot() const {

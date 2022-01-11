@@ -66,16 +66,14 @@ class Knot_diagram {
   }
   
   /* Import from CSV.
-   * Import a Morse event list from a CSV file given by filename. Currently, we
-   * assume that the lines of the file are of the form
+   * Import a Morse event list from a CSV file. Currently, we assume that the
+   * lines of the file are of the form
    * 
-   *      event, position.
+   *      event,position.
    * 
    */
-  template< class Filename_type >
-  void import_csv(const Filename_type& filename) {
-    std::cout << "[kd] Importing morse event list..." << std::endl;
-    std::ifstream morse_event_csv(filename);
+  void import_csv(std::ifstream& morse_event_csv) {
+    std::cout << "[kd] Importing Morse event list..." << std::endl;
     
     if (!morse_event_csv.is_open()) {  // file not found
       std::cout << "[kd] Morse event CSV file not found!"
@@ -105,7 +103,6 @@ class Knot_diagram {
       int position = std::stoi(line.substr(i + 1));
       morse_data_.push_back({event, {position}});
     }
-    morse_event_csv.close();
     
     morse_events_default_ = Detail_<>::get_morse_events(morse_data_);
   }  // import_csv

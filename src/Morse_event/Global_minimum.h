@@ -107,7 +107,7 @@ class Global_minimum {
     std::ostream& os,
     const Global_minimum& morse_event
   ) {
-    os << "min at 0";
+    os << "global min at 0";
     return os;
   }
 #endif  // BUNDLED_HFK_VERBOSE_
