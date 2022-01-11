@@ -85,7 +85,9 @@ int main(int argc, char* argv[]) {
   
   // Output knot Floer homology and other information
   std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
+#ifdef BUNDLED_HFK_DRAW_
   knot_diagram.TeXify(knot_diagram_out);
+#endif  // BUNDLED_HFK_DRAW_
   polynomial_out << pp << std::flush;
   
   // Close files
