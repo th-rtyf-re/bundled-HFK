@@ -116,6 +116,8 @@ class Differential_suffix_forest : private Arc_container< Forest_options > {
   using Node_container::descendants_size;
   
  public:
+  Differential_suffix_forest() { }
+  
   const Root_handle_container& gen_bundle_handles() const {
     return this->root_idems_;
   }
