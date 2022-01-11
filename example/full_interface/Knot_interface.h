@@ -40,6 +40,7 @@ namespace ComputeHFKv2 {
 #include "link/link.h"  // from Regina
 
 #include "Differential_suffix_forest/Differential_suffix_forest.h"
+#include "Differential_suffix_forest/Differential_suffix_forest_options.h"
 #include "Knot_diagram/Knot_diagram.h"
 
 #include "Morse_event/Positive_crossing.h"
@@ -113,13 +114,12 @@ class Knot_interface {
     return knot_diagram_;
   }
   
-  template< template< class > class D_module = Forest >
   Poincare_polynomial knot_Floer_homology() const {
     if (knot_diagram_.max_n_strands() <= 31) {
-      return knot_diagram_.knot_Floer_homology< Poincare_polynomial, D_module< Forest_options_default_short > >();
+      return knot_diagram_.knot_Floer_homology< Poincare_polynomial, Differential_suffix_forest< Forest_options_default_short > >();
     }
     else {
-      return knot_diagram_.knot_Floer_homology< Poincare_polynomial, D_module< Forest_options_default_long > >();
+      return knot_diagram_.knot_Floer_homology< Poincare_polynomial, Differential_suffix_forest< Forest_options_default_long > >();
     }
   }
     
