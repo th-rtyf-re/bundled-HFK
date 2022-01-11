@@ -1,12 +1,35 @@
-% ASCII to Knot Diagram
-%
-% Provides the command \KnotDiagram, which takes an ASCII representation of a 
-% knot diagram and produces a tikz version. The command also allows for
-% markings of Kauffman states and partial Kauffman states.
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+%                                                                             %
+%   ASCII to Knot Diagram - a LaTeX mini-package                              %
+%                                                                             %
+%   Copyright (C) 2022  Isaac Ren                                             %
+%   For further details, contact Isaac Ren (gopi3.1415@gmail.com).            %
+%                                                                             %
+%   This program is free software: you can redistribute it and/or modify      %
+%   it under the terms of the GNU General Public License as published by      %
+%   the Free Software Foundation, either version 3 of the License, or         %
+%   (at your option) any later version.                                       %
+%                                                                             %
+%   This program is distributed in the hope that it will be useful,           %
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of            % 
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             %
+%   GNU General Public License for more details.                              %
+%                                                                             %
+%   You should have received a copy of the GNU General Public License         %
+%   along with this program.  If not, see <https://www.gnu.org/licenses/>.    %
+%                                                                             %
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+% 
+% This file freely uses vocabulary from the article "Kauffman states, bordered
+% algebras, and a bigraded knot invariant" by Osváth and Szabó (2018).
+% 
+% This file provides the command \KnotDiagram, which takes an ASCII
+% representation of a knot diagram and produces a tikz version. The command
+% also allows for markings of Kauffman states and partial Kauffman states.
 % 
 % The ASCII representation is designed to make visual sense, so each character
-% represents a single block of the knot diagram. Each character encodes the
-% presence of a local extrema, crossing, interval marking, and crossing marking 
+% represents a single part of the knot diagram. Each character encodes the
+% presence of a local extremum, crossing, interval marking, or crossing marking 
 % as needed. This means that the choice of ASCII symbols is sometimes unclear,
 % but every character has an explanation:
 % 0,1: an empty space, and its counterpart where the lower interval is marked
@@ -20,31 +43,31 @@
 % n,e,s,w: negative crossings with their respective markings
 % a,A: a local maximum (think cAp) and its marked counterpart
 % u,U: a local minimum (think cUp) and its marked counterpart
-% l,L: a strand moving from bottom right to upper left and its marked 
+% l,L: a strand moving from bottom right to upper left and its marked
 %      counterpart
-% r,R: a strand moving from bottom left to upper right and its marked 
+% r,R: a strand moving from bottom left to upper right and its marked
 %      counterpart
 % 
 % With the ASCII representation, we can represent knot diagrams, like
 % a trefoil knot:
 % 
-% a0a
-% .+.
-% .+.
-% .+.
-% u0u
+%     a0a
+%     .+.
+%     .+.
+%     .+.
+%     u0u
 % 
 % upper and lower Kauffman diagrams:
 % 
-% a0a      .-.
-% .+.  or  u0u
+%     a0a          .-.
+%     .+.    or    u0u
 % 
 % as well as partial Kauffman diagrams with upper and lower intervals marked:
 % 
-% 10011
-% ..E..
+%     10011
+%     ..E..
 % 
-% The command \KnotDiagram itself comes with several adjustable aesthetic 
+% The command \KnotDiagram itself comes with several adjustable graphical 
 % parameters:
 % scale: the tikz scale
 % line width: the tikz line width
@@ -83,13 +106,15 @@ interval marking/.estore in = \IntervalMarking
 
 \newcounter{Slice} % the current slice layer
 
-\newcommand*{\PartialDiagram}[1]%
+% PartialDiagram
+% 
 % Takes a string of characters and returns a partial diagram consisting of
 % local  extrema, crossings, which may or may not be marked. The intervals
 % below marked crossings are marked or not, following the definition of partial
 % Kauffman states. Note that the necessary interval markings for crossings are 
 % not necessarily added.
 % All symbols can be adjusted to taste.
+\newcommand*{\PartialDiagram}[1]%
 {%
 \def\prevEvent{0} % If the previous space had an event, there is no need
                      % to add an extra segment.
@@ -173,9 +198,11 @@ interval marking/.estore in = \IntervalMarking
 \stepcounter{Slice}
 }
 
-\newcommand{\KnotDiagram}[2][]%
+% KnotDiagram
+% 
 % Takes as input a knot diagram in ASCII representation and returns a tikz
 % version. Takes optional keyword values.
+\newcommand{\KnotDiagram}[2][]%
 {%
 \pgfkeys{/knotdiagram, default, #1}
 % Produce a list of slices: newlines become spaces, so we separate the argument 
