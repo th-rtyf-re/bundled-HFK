@@ -2,9 +2,13 @@
 A `C++` library for calculating knot Floer homology via Ozsváth and Szabó's
 bordered approach.
 
-This code was written during my (Isaac Ren) stay at Inria Sophia
+This program was written during my (Isaac Ren) stay at Inria Sophia
 Antipolis-Méditerranée from March to August 2021, doing an internship under the
-supervision of Clément Maria.
+supervision of Clément Maria, and continued afterwards.
+
+This program uses [`boost`](https://www.boost.org/) libraries, in particular
+`multi_index_container` and `any`. You will need to install `boost` to compile
+the code.
 
 ### Note on the license
 This program is released under
