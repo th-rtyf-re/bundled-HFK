@@ -287,14 +287,14 @@ class Forest : private Arc_container< Forest_options > {
       for (auto arc_it = this->arcs_begin(); arc_it != this->arcs_end(); ) {
         if (arc_it->value.is_invertible()) {
           reduction = true;
-          std::cout << "[f] invertible arc " << *arc_it << "\n";
+          std::clog << "[f] invertible arc " << *arc_it << "\n";
           arc_it = contract_(arc_it);
         }
         else {
           ++arc_it;
         }
       }
-      std::cout << "[f] pass #" << ++counter << std::endl;
+      std::clog << "[f] pass #" << ++counter << std::endl;
     }
     
     this->modulo_2();
@@ -303,7 +303,7 @@ class Forest : private Arc_container< Forest_options > {
     this->prune_nodes(offsets);
     this->update_arc_endpoints(offsets);
 #ifdef BUNDLED_HFK_VERBOSE_
-    std::cout << "\n[f] number of nodes: " << this->nodes_.size()
+    std::clog << "\n[f] number of nodes: " << this->nodes_.size()
       << "\n[f] number of generators: " << this->n_leaves()
       << "\n[f] number of arcs: " << this->arcs_.size() << std::endl;
 #endif  // BUNDLED_HFK_VERBOSE_
