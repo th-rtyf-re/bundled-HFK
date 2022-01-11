@@ -21,7 +21,7 @@
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 //#define BUNDLED_HFK_DRAW_  // define for LaTeX-related functionality
-#define BUNDLED_HFK_VERBOSE_  // define for more verbose console
+//#define BUNDLED_HFK_VERBOSE_  // define for more verbose console
 
 #include <ctime>
 #include <iostream>
@@ -73,54 +73,15 @@ void load_and_compute_regina(
 void print_help() {
   std::cout
     << "Bundled HFK options:\n"
-    << "  --gnu [w] [c]\n"
     << "  -h, --help\n"
     << "  -me, --morse-events <csv file>\n"
     << "  -pd, --planar-diagram <txt file> [<start index>] [<end index>]\n"
     << "  -rs, --regina-signature <csv file> [<start index>] [<end index>]\n";
 }
 
-
-void print_license(std::string option = "") {
-  if (option == "w") {
-    std::cout
-      << "This program is distributed in the hope that it will be useful, "
-      << "but WITHOUT ANY WARRANTY; without even the implied warranty of "
-      << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
-      << "GNU General Public License for more details.\n";
-  }
-  else if (option == "c") {
-    std::cout
-      << "This program is free software: you can redistribute it and/or modify "
-      << "it under the terms of the GNU General Public License as published by "
-      << "the Free Software Foundation, either version 3 of the License, or "
-      << "(at your option) any later version.\n";
-  }
-}
-
-
 int main(int argc, char* argv[]) {
-  std::cout
-    << "\nBundled HFK - a bordered Floer knot homology calculator\n\n"
-    << "Copyright (C) 2021-2022  Isaac Ren\n\n"
-    << "This program comes with ABSOLUTELY NO WARRANTY; for details run the "
-    << "program with option `-gnu w'.\n"
-    << "This is free software, and you are welcome to redistribute it under "
-    << "certain conditions; run the program with option `-gnu c' for details.\n"
-    << std::endl;
-  
   if (argc == 1 or std::string(argv[1]) == "-h" or std::string(argv[1]) == "--help") {
     print_help();
-    return 0;
-  }
-  
-  if (std::string(argv[1]) == "-gnu") {
-    if (argc == 2) {
-      print_license();
-    }
-    else {
-      print_license(std::string(argv[2]));
-    }
     return 0;
   }
   
@@ -129,19 +90,38 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   
+  // Set log file, where developer messages are sent.
+  std::ofstream log_file("log.txt");
+  std::clog.rdbuf(log_file.rdbuf());
+  
+  // Other output files
+  std::ofstream knot_diagram_out("knot_diagrams.tex");
+  std::ofstream polynomial_out("poincare_polynomials.tex");
+  
   std::clock_t c_start = std::clock();
-  std::ifstream in_file(argv[2]);
   
   if (std::string(argv[1]) == "--morse-event" or std::string(argv[1]) == "-me") {
-    std::cout << "[main] Reading morse events from " << argv[2] << "..." << std::endl;
+    std::cout << "[main] Reading Morse events from " << argv[2] << "..." << std::endl;
+    std::ifstream in_file(argv[2]);
+    
     Knot_interface interface;
-    interface.import_morse_events(argv[2]);
+    interface.import_morse_events(in_file);
+    
     auto pp = interface.knot_Floer_homology();
     std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
+    
+    polynomial_out << pp << std::endl;
+#ifdef BUNDLED_HFK_DRAW_
+    interface.knot_diagram().TeXify(knot_diagram_out);
+    knot_diagram_out << std::endl;
+#endif  // BUNDLED_HFK_DRAW_
+    in_file.close();
   }
   
   else if (std::string(argv[1]) == "--planar-diagram" or std::string(argv[1]) == "-pd") {
     std::cout << "[main] Reading " << argv[2] << "..." << std::endl;
+    std::ifstream in_file(argv[2]);
+    
     Knot_interface interface;
     
     /* Prepare list of planar diagram strings.
@@ -195,13 +175,20 @@ int main(int argc, char* argv[]) {
       interface.import_planar_diagram(pd_strings[i]);
       auto pp = interface.knot_Floer_homology();
       std::cout << u8"[main] Poincar\u00E9 polynomial: " << pp << std::endl;
+      
+      polynomial_out << pp << std::endl;
+#ifdef BUNDLED_HFK_DRAW_
+      interface.knot_diagram().TeXify(knot_diagram_out);
+      knot_diagram_out << std::endl;
+#endif  // BUNDLED_HFK_DRAW_
+      
+      in_file.close();
     }
   }
   
   else if (std::string(argv[1]) == "--regina-signature" or std::string(argv[1]) == "-rs") {
-    std::ofstream knot_diagram_out("knot_diagrams.tex");
     std::ofstream planar_diagram_out("planar_diagrams.txt");
-    std::ofstream polynomial_out("poincare_polynomials.tex");
+    std::ifstream in_file(argv[2]);
     
     /* A knot number is provided. */
     if (argc >= 4) {
@@ -230,12 +217,12 @@ int main(int argc, char* argv[]) {
       load_and_compute_regina(in_file, knot_diagram_out, planar_diagram_out, polynomial_out);
     }
     
-    knot_diagram_out.close();
     planar_diagram_out.close();
-    polynomial_out.close();
+    in_file.close();
   }
   
-  in_file.close();
+  knot_diagram_out.close();
+  polynomial_out.close();
   std::clock_t c_end = std::clock();
   std::cout << "CPU time used: "
     << 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC
