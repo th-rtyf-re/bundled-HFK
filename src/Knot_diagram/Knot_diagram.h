@@ -71,6 +71,9 @@ class Knot_diagram {
    * 
    *      event,position.
    * 
+   * There is no error checking for the Morse event list: if the list is not
+   * valid, then there will most likely be a segmentation fault error when
+   * computing morse_events_default_.
    */
   void import_csv(std::ifstream& morse_event_csv) {
     std::cout << "[kd] Importing Morse event list..." << std::endl;
@@ -247,8 +250,6 @@ class Knot_diagram {
      * 
      * I need to add a dummy class template because I can't partially
      * specialize for the initialization otherwise.
-     * The other possibility is requiring at least one Morse event, but
-     * I want to leave the possibility of having no Morse events.
      */
     template<
       int,
@@ -268,7 +269,8 @@ class Knot_diagram {
     
     // Initialization: 
     template< int >
-    static Morse_event instance_aux_(const int, const std::vector< Parameter_type >&) {
+    static Morse_event instance_aux_(const int i, const std::vector< Parameter_type >&) {
+      std::cout << "[kd] Unrecognized Morse event code: " << i << std::endl;
       return Morse_event();
     }
   };  // Detail_
@@ -277,7 +279,7 @@ class Knot_diagram {
 #ifdef BUNDLED_HFK_DRAW_
   /* TeXify */
   void TeXify(std::ofstream& write_file) const {
-    std::cout << "[kd] Drawing knot..." << std::flush;
+    std::cout << "[kd] Drawing knot... " << std::flush;
     
     const auto margins = get_margins_();
     const auto algebras = Detail_<>::get_bordered_algebras(morse_events_default_);
