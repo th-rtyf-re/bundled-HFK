@@ -89,6 +89,7 @@ class Knot_interface {
   void import_planar_diagram(const std::string& planar_diagram_string) {
     planar_diagram_string_ = planar_diagram_string;
     ComputeHFKv2::PlanarDiagram planar_diagram(planar_diagram_string_);
+    srand(0);  // getting Morse code is random; fix the seed for consistency
     compute_hfk_v2_morse_code_ = planar_diagram.GetSmallGirthMorseCode();
     auto morse_data = morse_code_to_data_(compute_hfk_v2_morse_code_);
     knot_diagram_.import_data(morse_data);
