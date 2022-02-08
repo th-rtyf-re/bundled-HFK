@@ -20,8 +20,8 @@
  *                                                                           *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-//#define BUNDLED_HFK_DRAW_  // define for LaTeX-related functionality
-//#define BUNDLED_HFK_VERBOSE_  // define for more verbose console
+#define BUNDLED_HFK_DRAW_  // define for LaTeX-related functionality
+#define BUNDLED_HFK_VERBOSE_  // define for more verbose console
 
 #include <ctime>
 #include <iostream>
@@ -152,6 +152,7 @@ int main(int argc, char* argv[]) {
       }
     }
     pd_strings.push_back(planar_diagram_string);
+    in_file.close();
     
     int start = 0;
     int stop = pd_strings.size();
@@ -181,8 +182,6 @@ int main(int argc, char* argv[]) {
       interface.knot_diagram().TeXify(knot_diagram_out);
       knot_diagram_out << std::endl;
 #endif  // BUNDLED_HFK_DRAW_
-      
-      in_file.close();
     }
   }
   

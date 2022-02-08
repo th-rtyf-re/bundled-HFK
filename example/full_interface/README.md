@@ -2,9 +2,8 @@
 ### Running the example
 
 Before compiling,
-[build Regina from source](https://regina-normal.github.io/source.html) and
-download [`ComputeHFKv2`](https://web.math.princeton.edu/~szabo/HFKcalc.html)
-to the `utilities` folder. To compile, run
+[build Regina from source](https://regina-normal.github.io/source.html). To
+compile, run
 ```
 sh compile.sh
 ```

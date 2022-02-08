@@ -27,17 +27,12 @@
 #include <cstdlib>  // strtol
 #include <fstream>
 #include <iostream>
-#include <sstream>  // stringstream
 #include <string>
 #include <tuple>  // tie
-#include <utility>  // pair
 #include <vector>
 
-namespace ComputeHFKv2 {
-  #include "Diagrams.h"  // from ComputeHFKv2
-  #include "Diagrams.cpp"
-}
 #include "link/link.h"  // from Regina
+#include "Planar_diagram.h"
 
 #include "Differential_suffix_forest/Differential_suffix_forest.h"
 #include "Differential_suffix_forest/Differential_suffix_forest_options.h"
@@ -51,7 +46,7 @@ namespace ComputeHFKv2 {
 
 #include "Math_tools/Poincare_polynomial.h"
 
-/* An interface between Regina knots and our knots, passing by ComputeHFKv2
+/* An interface between Regina knots and our knots, passing by planar diagrams
  */
 class Knot_interface {
  public:
@@ -72,26 +67,25 @@ class Knot_interface {
     global_minimum
   };
   
-  Knot_interface() :
-    compute_hfk_v2_morse_code_({}, -1)
-  { }
+  Knot_interface() { }
   
   void import_regina_signature(const std::string& knot_sig) {
     {  // swap in
       regina::Link other_knot(knot_sig);
       regina_knot_.swapContents(other_knot);
     }
-    planar_diagram_string_ = planar_diagram_to_string_(regina_to_planar_diagram_(regina_knot_));
-    
-    import_planar_diagram(planar_diagram_string_);
+    planar_diagram_ = Planar_diagram(regina_to_planar_diagram_(regina_knot_));
+    srand(0);
+    auto legacy_morse_code = planar_diagram_.get_legacy_morse_code();
+    auto morse_data = morse_code_to_data_(legacy_morse_code);
+    knot_diagram_.import_data(morse_data);
   }
   
   void import_planar_diagram(const std::string& planar_diagram_string) {
-    planar_diagram_string_ = planar_diagram_string;
-    ComputeHFKv2::PlanarDiagram planar_diagram(planar_diagram_string_);
+    planar_diagram_ = Planar_diagram(planar_diagram_string);
     srand(0);  // getting Morse code is random; fix the seed for consistency
-    compute_hfk_v2_morse_code_ = planar_diagram.GetSmallGirthMorseCode();
-    auto morse_data = morse_code_to_data_(compute_hfk_v2_morse_code_);
+    auto legacy_morse_code = planar_diagram_.get_legacy_morse_code();
+    auto morse_data = morse_code_to_data_(legacy_morse_code);
     knot_diagram_.import_data(morse_data);
   }
   
@@ -104,12 +98,8 @@ class Knot_interface {
   }
   
   std::string planar_diagram_string() const {
-    return planar_diagram_string_;
-  }
-  
-  ComputeHFKv2::MorseCode compute_hfk_v2_morse_code() const {
-    return compute_hfk_v2_morse_code_;
-  }
+    return planar_diagram_.to_string();
+  }  // planar_diagram_to_string_
   
   const Knot_diagram& knot_diagram() const {  // return a viewing reference
     return knot_diagram_;
@@ -135,8 +125,8 @@ class Knot_interface {
    *    0
    * 
    */
-  std::vector< std::array< int, 4 > > regina_to_planar_diagram_(const regina::Link& knot) const {
-    std::vector< std::array< int, 4 > > planar_diagram;
+  std::vector< int > regina_to_planar_diagram_(const regina::Link& knot) const {
+    std::vector< int > planar_diagram;
     std::string oriented_Gauss_code = knot.orientedGauss();
     
     int next_crossing = 0;  // crossings start at 0
@@ -155,7 +145,7 @@ class Knot_interface {
         continue;
       }
       else if (crossing == next_crossing) {
-        planar_diagram.emplace_back();
+        planar_diagram.resize(planar_diagram.size() + 4, 0);
         ++next_crossing;
       }
       
@@ -174,11 +164,11 @@ class Knot_interface {
         }
       }
       
-      planar_diagram[crossing][in_direction] = last_arc++;
-      planar_diagram[crossing][out_direction] = last_arc;
+      planar_diagram[4 * crossing + in_direction] = last_arc++;
+      planar_diagram[4 * crossing + out_direction] = last_arc;
     }
     /* Fix the last arc */
-    planar_diagram[crossing][out_direction] = 1;
+    planar_diagram[4 * crossing + out_direction] = 1;
     return planar_diagram;
   }  // get_planar_diagram_
   
@@ -191,34 +181,21 @@ class Knot_interface {
     return std::make_tuple(negative, left, crossing);
   }  // unpack_
   
-  std::string planar_diagram_to_string_(const std::vector< std::array< int, 4 > >& planar_diagram) const {
-    std::stringstream ss;
-    ss << "PD[";
-    for (auto& a : planar_diagram) {
-      ss << "X[" << a[0] << "," << a[1] << "," << a[2] << "," << a[3] << "],";
-    }
-    ss.seekp(-1, ss.cur);
-    ss << "]" << std::flush;
-    
-    return ss.str();
-  }  // planar_diagram_to_string_
   
-  Morse_data_container morse_code_to_data_(const ComputeHFKv2::MorseCode& morse_code) const {
-    std::vector< int > raw_morse_data = const_cast< ComputeHFKv2::MorseCode& >(morse_code).GetMorseList();
-    
+  Morse_data_container morse_code_to_data_(const std::vector< int >& legacy_morse_code) const {
     Morse_data_container morse_data;
-    for (int i = 0; i < raw_morse_data.size() - 1; ++i) {
-      if (raw_morse_data[i] == 1000 or raw_morse_data[i] == 1001) {
-        morse_data.push_back({local_maximum, {raw_morse_data[++i] - 1}});
+    for (int i = 0; i < legacy_morse_code.size() - 1; ++i) {
+      if (legacy_morse_code[i] == 1000 or legacy_morse_code[i] == 1001) {
+        morse_data.push_back({local_maximum, {legacy_morse_code[++i] - 1}});
       }
-      else if (raw_morse_data[i] == -1000 or raw_morse_data[i] == -1001) {
+      else if (legacy_morse_code[i] == -1000 or legacy_morse_code[i] == -1001) {
         morse_data.push_back({local_minimum, {0}});
       }
-      else if (raw_morse_data[i] > 0) {
-        morse_data.push_back({positive_crossing, {raw_morse_data[i] - 1}});
+      else if (legacy_morse_code[i] > 0) {
+        morse_data.push_back({positive_crossing, {legacy_morse_code[i] - 1}});
       }
       else {
-        morse_data.push_back({negative_crossing, {-raw_morse_data[i] - 1}});
+        morse_data.push_back({negative_crossing, {-legacy_morse_code[i] - 1}});
       }
     }
     
@@ -229,8 +206,7 @@ class Knot_interface {
   }
   
   regina::Link regina_knot_;  // from Regina
-  std::string planar_diagram_string_;  // i.e. PD[X[a,b,c,d],...]
-  ComputeHFKv2::MorseCode compute_hfk_v2_morse_code_;  // from ComputeHFKv2
+  Planar_diagram planar_diagram_;
   Knot_diagram knot_diagram_;  // our knot diagram
 };
 
