@@ -131,10 +131,10 @@ class Planar_diagram {
        * There are twice as many edges as crossings.
        */
       std::vector< int > morse_list = {1001, 1, 1001, 3, -2};
-      if ((edges[2] - edges[0]) % (2 * n_crossings) == 1) {
+      if ((2 * n_crossings + edges[2] - edges[0]) % (2 * n_crossings) == 1) {
         morse_list[0] = 1000;
       }
-      if ((edges[3] - edges[1]) % (2 * n_crossings) == 1) {
+      if ((2 * n_crossings + edges[3] - edges[1]) % (2 * n_crossings) == 1) {
         morse_list[2] = 1000;
       }
       if (shift % 2 == 0) {
@@ -223,10 +223,9 @@ class Planar_diagram {
       }
     }
     int connections = pos_in_edges.size();
-  
-    if (connections == 0) continue;
-    else if (pos_in_edges.back() - pos_in_edges.front() > connections) {
-      continue;  // crossing attaches to temp in disjoint intervals
+    
+    if (pos_in_edges.empty() or pos_in_edges.back() - pos_in_edges.front() > connections) {
+      continue;  // crossing attaches nowhere or in disjoint intervals
     }
   
     //std::std::cout << "pos in temp " << pos_in_edges << " pos in crossing " << pos_in_crossing << std::std::endl;
@@ -304,21 +303,21 @@ class Planar_diagram {
      * 
      */
     if (connectivity == 1) {
-    int left_pos = (crossing_first_pos + 1) % 4;
-    int right_pos = (crossing_first_pos + 3) % 4;
-    if ((crossing_edges[right_pos] - crossing_edges[left_pos]) % (pd.size() / 2) == 1) {
-      morse_list.push_back(1000);  // maximum oriented left to right
-    }
-    else {
-      morse_list.push_back(1001);  // maximum oriented right to left
-    }
-    morse_list.push_back(first_pos + 2);  // position of maximum
-    if (crossing_first_pos % 2 == 0) {
-      morse_list.push_back(first_pos + 1);  // positive crossing
-    }
-    else {
-      morse_list.push_back(-first_pos - 1);  // negative crossing
-    }
+      int left_pos = (crossing_first_pos + 1) % 4;
+      int right_pos = (crossing_first_pos + 3) % 4;
+      if ((pd.size() / 2 + crossing_edges[right_pos] - crossing_edges[left_pos]) % (pd.size() / 2) == 1) {
+        morse_list.push_back(1000);  // maximum oriented left to right
+      }
+      else {
+        morse_list.push_back(1001);  // maximum oriented right to left
+      }
+      morse_list.push_back(first_pos + 2);  // position of maximum
+      if (crossing_first_pos % 2 == 0) {
+        morse_list.push_back(first_pos + 1);  // positive crossing
+      }
+      else {
+        morse_list.push_back(-first_pos - 1);  // negative crossing
+      }
     }
   
     // If connectivity == 2, nothing complicated happens.
